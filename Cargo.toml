@@ -9,4 +9,3 @@ hound = "3.4"
 
 [[bin]]
 name = "samplr"
-path = "samplr.rs"

@@ -2,7 +2,7 @@ use hound;
 use std::error::Error;
 use std::io::{self, ErrorKind};
 
-fn get_loop() -> Result<Vec<f32>, Box<Error>> {
+pub fn get_loop() -> Result<Vec<f32>, Box<Error>> {
     // Open and check the file.
     let mut wavfile = hound::WavReader::open("loop.wav")?;
     let ws = wavfile.spec();
@@ -19,9 +19,4 @@ fn get_loop() -> Result<Vec<f32>, Box<Error>> {
         .map(|s| s.unwrap() as f32)
         .collect();
     Ok(signal)
-}
-
-fn main() {
-    let signal = get_loop().unwrap();
-    println!("{}", signal.len());
 }
