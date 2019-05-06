@@ -49,7 +49,7 @@ pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
     let mut stream =
         out.open_non_blocking_stream(settings, player)?;
     stream.start()?;
-    out.sleep(30_000);
+    out.sleep(1000);
     stream.stop()?;
     stream.close()?;
 

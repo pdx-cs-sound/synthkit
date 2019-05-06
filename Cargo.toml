@@ -5,9 +5,10 @@ authors = ["Bart Massey <bart@cs.pdx.edu>"]
 edition = "2018"
 
 [dependencies]
+lazy_static = "1.3"
 hound = "3.4"
 portaudio="0.7"
-lazy_static = "1.3"
+midir = "0.5"
 
 [[bin]]
 name = "samplr"
