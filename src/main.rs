@@ -14,7 +14,10 @@ use midi::*;
 const SAMPLE_RATE: u32 = 48_000;
 
 fn main() {
+    // Get a signal from a WAV file.
     let signal = get_sample().unwrap();
+    // Play signal on audio output.
     play(signal).unwrap();
-    read_keys("Mobile Keys 49 32:0").unwrap();
+    // Read and decode MIDI keys.
+    read_keys("Mobile Keys 49").unwrap();
 }

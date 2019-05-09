@@ -9,16 +9,21 @@ use portaudio as pa;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
+// Data used to play samples on audio output device.
 struct Player {
+    // Index indicating sample next to be played.
     index: usize,
+    // Samples to be played, circularly.
     buf: Vec<f32>,
 }
 
+// Set up safe synchronized global access to the player.
 lazy_static! {
     static ref PLAYER: Arc<Mutex<Option<Player>>> =
         Arc::new(Mutex::new(None));
 }
 
+// Supply portaudio with a requested chunk of samples.
 fn player(out: pa::OutputStreamCallbackArgs<i16>)
     -> pa::stream::CallbackResult
 {
@@ -37,12 +42,15 @@ fn player(out: pa::OutputStreamCallbackArgs<i16>)
     pa::Continue
 }
 
+// Post the given samples for loop playback.
 pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
+    // Install a new player.
     {
         let mut plp = PLAYER.lock()?;
         *plp = Some(Player{ index: 0, buf });
     }
 
+    // Create and initialize audio output.
     let out = pa::PortAudio::new()?;
     let mut settings =
         out.default_output_stream_settings(
@@ -53,6 +61,8 @@ pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
     settings.flags = pa::stream_flags::CLIP_OFF;
     let mut stream =
         out.open_non_blocking_stream(settings, player)?;
+    
+    // Play 1s of samples and then stop everything.
     stream.start()?;
     out.sleep(1000);
     stream.stop()?;
