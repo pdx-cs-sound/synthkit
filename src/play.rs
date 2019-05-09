@@ -27,10 +27,13 @@ lazy_static! {
 fn player(out: pa::OutputStreamCallbackArgs<i16>)
     -> pa::stream::CallbackResult
 {
+    // Borrow the sample buffer from the player safely.
     let mut pp = PLAYER.lock().unwrap();
     let pl = pp.as_mut().unwrap();
     let nbuf = pl.buf.len();
 
+    // Copy the requested samples into the output buffer,
+    // converting as we go.
     for i in 0..out.frames {
         out.buffer[i] = f32::floor(pl.buf[pl.index] * 32768.0f32) as i16;
         pl.index += 1;
@@ -39,6 +42,7 @@ fn player(out: pa::OutputStreamCallbackArgs<i16>)
         }
     }
 
+    // Keep the stream going.
     pa::Continue
 }
 
