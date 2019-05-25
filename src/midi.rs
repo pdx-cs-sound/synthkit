@@ -3,16 +3,22 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
+//! Synthesizer MIDI input.
+
 use std::io;
 use std::sync::mpsc;
 use std::error::Error;
 
 use midir::MidiInput;
 
-// Read and process key events from a MIDI keyboard with the
-// given name. XXX The name isn't really sufficient: there
+// XXX The name isn't really sufficient: there
 // may be multiple connected devices with the same name. We
-// should find out how to use port and connection numbers.
+// should find out how to use port and connection numbers,
+// or have the midi reader post a port for connection instead
+// of trying to connect directly.
+
+/// Read and process key events from a MIDI keyboard with the
+/// given name.
 pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
     // Keymap indicating which keys are currently down (true).
     let mut keymap = [false;128];

@@ -3,27 +3,29 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
+//! Synthesizer audio player.
+
 use lazy_static::*;
 use portaudio as pa;
 
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
-// Data used to play samples on audio output device.
+/// Data used to play samples on audio output device.
 struct Player {
-    // Index indicating sample next to be played.
+    /// Index indicating sample next to be played.
     index: usize,
-    // Samples to be played, circularly.
+    /// Samples to be played, circularly.
     buf: Vec<f32>,
 }
 
-// Set up safe synchronized global access to the player.
+/// Set up safe synchronized global access to the player.
 lazy_static! {
     static ref PLAYER: Arc<Mutex<Option<Player>>> =
         Arc::new(Mutex::new(None));
 }
 
-// Supply portaudio with a requested chunk of samples.
+/// Supply portaudio with a requested chunk of samples.
 fn player(out: pa::OutputStreamCallbackArgs<i16>)
     -> pa::stream::CallbackResult
 {
@@ -46,7 +48,8 @@ fn player(out: pa::OutputStreamCallbackArgs<i16>)
     pa::Continue
 }
 
-// Post the given samples for loop playback.
+/// Post the given buffer of normalized float samples for
+/// loop playback.
 pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
     // Install a new player.
     {

@@ -3,13 +3,17 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
+//! Synthesizer sample file reader.
+
 use hound;
 use std::error::Error;
 use std::io::{self, ErrorKind};
 
-pub fn get_sample() -> Result<Vec<f32>, Box<Error>> {
+/// Read a sample file and return it as a buffer of
+/// normalized (float) samples.
+pub fn get_sample(name: &str) -> Result<Vec<f32>, Box<Error>> {
     // Open and check the file.
-    let mut wavfile = hound::WavReader::open("loop.wav")?;
+    let mut wavfile = hound::WavReader::open(name)?;
     let ws = wavfile.spec();
     if ws.channels != 1
         || ws.bits_per_sample != 16

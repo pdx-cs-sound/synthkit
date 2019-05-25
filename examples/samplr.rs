@@ -3,19 +3,12 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-mod sample;
-mod play;
-mod midi;
-
-use sample::*;
-use play::*;
-use midi::*;
-
-const SAMPLE_RATE: u32 = 48_000;
+// Synthesizer demo example using synthkit-rs
+use synthkit::*;
 
 fn main() {
     // Get a signal from a WAV file.
-    let signal = get_sample().unwrap();
+    let signal = get_sample("loop.wav").unwrap();
     // Play signal on audio output.
     play(signal).unwrap();
     // Read and decode MIDI keys.
