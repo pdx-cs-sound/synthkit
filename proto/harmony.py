@@ -13,7 +13,19 @@ import wavio
 samples = wavio.readwav("../loop.wav")
 nsamples = len(samples)
 
-# Use a window this size around each sample.
+# Milliseconds of lap window at beginning and end of harmony.
+lap_msecs = 20
+lap_samples = lap_msecs * 48000 // 1000
+
+# Lap the samples.
+for i in range(lap_samples):
+    c = i / (lap_samples + 1)
+    samples[i] *= 1 - c
+    samples[i] += c * samples[nsamples + i - lap_samples - 1]
+
+wavio.writewav("w.wav", np.array(samples))
+
+# Use an interpolation window this size around each sample.
 # Window should be odd.
 window = 65
 
@@ -39,29 +51,10 @@ octaves_down = make_harmony(0.25)
 harmony = (root + third + octaves_down) / 3
 nharmony = len(harmony)
 
-# Milliseconds of lap window at beginning and end of harmony.
-lap_msecs = 5
-lap_samples = lap_msecs * 48000 // 1000
-nharmony -= lap_samples
-
 # Replicate the harmony for 5 seconds.
 nreplica = 5 * 48000
 replica = np.array([0]*nreplica, dtype=np.float)
 for i in range(nreplica):
-    j = i % nharmony
-    # Beginning
-    if i < lap_samples:
-        replica[i] = i * harmony[j] / lap_samples
-        continue
-    # Ending
-    if i >= nreplica - lap_samples:
-        replica[i] = (nreplica - i) * harmony[j] / lap_samples
-        continue
-    # Overlap
-    if j < lap_samples:
-        s = j * harmony[j] + (lap_samples - j) * harmony[nharmony + lap_samples - j - 1]
-        replica[i] = s / lap_samples
-        continue
-    replica[i] = harmony[j]
+    replica[i] = harmony[i % nharmony]
 
 wavio.writewav("harmony.wav", replica)
