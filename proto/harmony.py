@@ -11,11 +11,34 @@ import wavio
 
 # Get some samples.
 samples = wavio.readwav("../loop.wav")
+samples = samples[1024:-1024]
 nsamples = len(samples)
 
+# Minimum and maximum expected fundamental frequency of
+# samples in Hz.
+f_min = 100
+f_max = 2000
+
+# Do an autocorrelation to try to find the period of the
+# signal.
+s_max = 48000 // f_min
+s_min = 48000 // f_max
+cmax = None
+pmax = None
+for p in range(s_min, s_max):
+    st = samples[:p]
+    su = samples[p:2*p]
+    corr = np.dot(st, su) / p
+    if cmax == None or corr > cmax:
+        cmax = corr
+        pmax = p
+nsamples = pmax * 20
+print(nsamples)
+samples = samples[:nsamples+1]
+print(len(samples))
+
 # Maximum search for autocorrelator.
-ac_msecs = 200
-ac_samples = ac_msecs * 48000 // 1000
+ac_samples = 2 * pmax
 
 # Sample length for autocorrelator.
 ac_length = ac_samples // 8
@@ -35,9 +58,8 @@ for t in range(ac_samples):
 samples = samples[:umax + ac_length]
 nsamples = len(samples)
 
-# Milliseconds of lap window at beginning and end of harmony.
-lap_msecs = 100
-lap_samples = lap_msecs * 48000 // 1000
+# Size of lap window from beginning to end of samples.
+lap_samples = 3 * pmax
 
 # Lap the samples.
 for i in range(lap_samples):
@@ -45,7 +67,7 @@ for i in range(lap_samples):
     samples[i] *= 1 - c
     samples[i] += c * samples[nsamples + i - lap_samples - 1]
 
-# Replicate the harmony for 5 seconds.
+# Replicate the samples for 5 seconds.
 nreplica = 5 * 48000
 replica = np.array([0]*nreplica, dtype=np.float)
 for i in range(nreplica):
