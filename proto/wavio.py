@@ -44,7 +44,7 @@ def writewav(fn, samples):
     """
     Take a numpy.array of float 48KHz samples
     and write the 16-bit single-channel WAV file
-    fn.
+    fn. Consumes the samples.
     """
 
     with wav.open(fn, 'wb') as wavfile:
