@@ -19,8 +19,8 @@ struct Player {
     buf: Vec<f32>,
 }
 
-/// Set up safe synchronized global access to the player.
 lazy_static! {
+    /// Set up safe synchronized global access to the player.
     static ref PLAYER: Arc<Mutex<Option<Player>>> =
         Arc::new(Mutex::new(None));
 }

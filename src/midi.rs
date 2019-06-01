@@ -41,14 +41,21 @@ pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
         "samplr-input",
         move |_, message: &[u8], _| {
             // Leading bit of message is 1 if MIDI "status": the
-            // next three bits say which status message.
+            // next three bits say which status message. There are
+            // also some 8-bit messages.
             match message[0] & 0xf0 {
                 // "Note on" message.
                 0x90 => {
                     assert_eq!(message.len(), 3);
                     // Data bytes are key number and velocity.
-                    println!("note on: {} {}", message[1], message[2]);
-                    keymap[message[1] as usize] = true;
+                    // If velocity is zero, treat as a note off message.
+                    if message[2] == 0 {
+                        println!("note off: {}", message[1]);
+                        keymap[message[1] as usize] = false;
+                    } else {
+                        println!("note on: {} {}", message[1], message[2]);
+                        keymap[message[1] as usize] = true;
+                    }
                 },
                 // "Note off" message.
                 0x80 => {
@@ -57,8 +64,16 @@ pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
                     println!("note off: {} {}", message[1], message[2]);
                     keymap[message[1] as usize] = false;
                 },
+                0xf0 => {
+                    match message[0] & 0x0f {
+                        0x0e => return,   // Active Sensing
+                        // Other special messages ignored for now.
+                        _ => println!("unrecognized special {:02x}",
+                                      message[0]),
+                    }
+                },
                 // Other messages ignored for now.
-                s => println!("unrecognized status {:x}", s),
+                _ => println!("unrecognized status {:02x}", message[0]),
             }
             // XXX Pressing keys for B5 and C5 together will
             // cause end of reading messages. (Exit synth.)
