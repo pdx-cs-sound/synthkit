@@ -11,55 +11,53 @@ import wavio
 
 # Get some samples.
 samples = wavio.readwav("../loop.wav")
-samples = samples[1024:-1024]
 nsamples = len(samples)
 
 # Minimum and maximum expected fundamental frequency of
 # samples in Hz.
-f_min = 100
-f_max = 2000
+f_min = 110
+f_max = 1720
 
-# Do an autocorrelation to try to find the period of the
-# signal.
+# Minimum and maximum periods in samples.
 s_max = 48000 // f_min
 s_min = 48000 // f_max
-cmax = None
-pmax = None
-for p in range(s_min, s_max):
-    st = samples[:p]
-    su = samples[p:2*p]
-    corr = np.dot(st, su) / p
-    if cmax == None or corr > cmax:
-        cmax = corr
-        pmax = p
-nsamples = pmax * 20
-print(nsamples)
-samples = samples[:nsamples+1]
-print(len(samples))
+
+# Do an FFT to try to find the period of the signal.
+nfft = 2**14
+nwin = 4 * s_max
+windowed = np.hamming(nwin) * np.array(samples[:nwin])
+spectrum = np.abs(np.fft.rfft(windowed, n=nfft))
+imax = np.argmax(spectrum)
+dc = np.abs(spectrum[0])
+amax = np.abs(spectrum[imax])
+fmax = np.fft.rfftfreq(nfft, d=1/48000)[imax]
+pmax = int(48000 / fmax)
+print(dc, amax, fmax, pmax)
 
 # Maximum search for autocorrelator.
 ac_samples = 2 * pmax
 
 # Sample length for autocorrelator.
-ac_length = ac_samples // 8
+ac_length = ac_samples
 
 # Do an autocorrelation to try to find a good place to
 # end the samples so they loop.
 cmax = None
 umax = None
 for t in range(ac_samples):
-    u = nsamples - ac_samples - ac_length + t
+    u = nsamples - ac_length - t
     st = samples[:ac_length]
     su = samples[u:u+ac_length]
     corr = np.dot(st, su)
     if cmax == None or corr > cmax:
         cmax = corr
         umax = u
+print(cmax, nsamples - umax)
 samples = samples[:umax + ac_length]
 nsamples = len(samples)
 
 # Size of lap window from beginning to end of samples.
-lap_samples = 3 * pmax
+lap_samples = 0
 
 # Lap the samples.
 for i in range(lap_samples):
@@ -67,22 +65,19 @@ for i in range(lap_samples):
     samples[i] *= 1 - c
     samples[i] += c * samples[nsamples + i - lap_samples - 1]
 
-# Replicate the samples for 5 seconds.
-nreplica = 5 * 48000
-replica = np.array([0]*nreplica, dtype=np.float)
-for i in range(nreplica):
-    replica[i] = samples[i % nsamples]
-wavio.writewav("ac.wav", replica)
-
 # Use an interpolation window this size around each sample.
 # Window should be odd.
-window = 65
+window = 9
+
+# Replicate the samples for 5 seconds.
+nreplica = 5 * 48000
 
 # We will skip through the samples ratio faster.
 def make_harmony(ratio):
-    cutoff = 24000 * min(1, ratio)
-    harmony = np.array([0] * nsamples, dtype=np.float)
-    for i in range(nsamples):
+    ratio *= 440 / fmax
+    cutoff = 20000 * min(1, ratio)
+    harmony = np.array([0] * nreplica, dtype=np.float)
+    for i in range(nreplica):
         x = (i * ratio) % nsamples
         harmony[i] = resamp.resamp(x, samples, cutoff, 48000, window)
     return harmony
