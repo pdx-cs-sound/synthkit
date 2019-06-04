@@ -5,9 +5,6 @@
 
 //! Time stretching and pitch shifting of an audio sample.
 
-#![allow(unused)]
-
-use std::error::Error;
 use std::f32::consts::PI;
 
 use dsp::{fft::*, signals::*, windows::*};
@@ -15,29 +12,34 @@ use num_complex::*;
 
 use crate::*;
 
+// Width of resampling filter in samples. Should be odd,
+// since centered on target sample. Larger is better and
+// slower.
+const RESAMP_WIDTH: i64 = 9;
+
 // Minimum and maximum expected fundamental frequency of
 // samples in Hz.
-const F_MIN: u64 = 110;
-const F_MAX: u64 = 1720;
-
-// Minimum and maximum periods in samples.
-const S_MAX: u64 = 48000 / F_MIN;
-const S_MIN: u64 = 48000 / F_MAX;
+const F_MIN: f32 = 110.0;
+const F_MAX: f32 = 1720.0;
 
 // FFT Length. Ideally power of two.
 const NFFT: usize = 16_384;
 
+// Find the maximum frequency of the buffer.
 fn max_freq(buf: &[f32]) -> f32 {
-    // Create a new Signal with a windowed copy of the buffer
-    // maybe zero-padded.
-    let mut signal: Vec<Complex64> = buf
+    // Create a new Signal.
+    let signal: Vec<Complex64> = buf
         .iter()
         .map(|&s| Complex64::new(f64::from(s), 0.0))
         .collect();
     let init_size = usize::min(signal.len(), NFFT);
     let signal = Signal::from_samples(signal, SAMPLE_RATE as usize);
+
+    // Window the signal.
     let window = hamming(init_size);
     let signal = window.apply(&signal);
+
+    // Do the FFT and return the maximum frequency.
     let mut signal = signal.to_vec();
     signal.resize(NFFT, Complex64::new(0.0, 0.0));
     let signal = Signal::from_samples(signal, SAMPLE_RATE as usize);
@@ -47,11 +49,13 @@ fn max_freq(buf: &[f32]) -> f32 {
 }
 
 #[test]
+// Check that a DC signal has a DC maximum.
 fn test_max_freq_0() {
     assert_eq!(0.0, max_freq(&[1.0; NFFT]));
 }
 
 #[test]
+// Check that a maximum-frequency signal is correct.
 fn test_max_freq_nyquist() {
     let buf: Vec<f32> = (0..NFFT)
         .map(|i| if i % 2 == 0 { -1.0 } else { 1.0 })
@@ -59,11 +63,13 @@ fn test_max_freq_nyquist() {
     assert_eq!(SAMPLE_RATE as f32 / 2.0, max_freq(&buf));
 }
 
+// Plain old dot product.
 fn dot(buf1: &[f32], buf2: &[f32]) -> f32 {
     buf1.iter().zip(buf2.iter()).map(|(s1, s2)| s1 * s2).sum()
 }
 
 #[test]
+// Test that some dot product comes out right.
 fn test_dot() {
     assert_eq!(14.0, dot(&[1.0, 3.0], &[2.0, 4.0]));
 }
@@ -72,7 +78,11 @@ fn test_dot() {
 // lags, return the amount to clip off the end of the
 // buffer to get best circular correlation, and the score
 // of that clip.
-fn best_loop(buf: &[f32], len: usize, lag: std::ops::Range<usize>) -> (f32, usize) {
+fn best_loop(
+    buf: &[f32],
+    len: usize,
+    lag: std::ops::Range<usize>,
+) -> (f32, usize) {
     let nbuf = buf.len();
     let mut cinfo: Option<(f32, usize)> = None;
     for t in lag {
@@ -86,21 +96,93 @@ fn best_loop(buf: &[f32], len: usize, lag: std::ops::Range<usize>) -> (f32, usiz
 }
 
 #[test]
+// Test that the end sample is clipped off a short thing.
 fn test_best_loop() {
     let samples = [1.0, 1.0, 1.0, 0.0];
     assert_eq!(1, best_loop(&samples, 2, 0..2).1);
 }
 
-pub fn sampler(buf: &[f32]) -> impl Iterator<f32> {
-    // Find the dominant frequency.
-    let f_max = max_freq(buf);
-    let p_max = f32::floor(SAMPLE_RATE as f32 / f_max + 0.5) as usize;
+/// Iterator producing resampled audio samples.  This is an
+/// unbounded iterator.
+pub struct Samples<'a> {
+    buf: &'a [f32],
+    incr: f32,
+    cutoff: f32,
+    x: f32,
+}
 
-    // Find the best place to close off the loop and do so.
-    let (_, t) = best_loop(buf, 2 * p_max, 0..2 * p_max);
-    let buf = &buf[0..buf.len() - t];
+impl<'a> Samples<'a> {
 
-    unimplemented!("sampler")
+    // Make a new resampling iterator.
+    pub fn new(sloop: &'a Loop, incr: f32, cutoff: f32) -> Self {
+        assert!(incr.abs() < RESAMP_WIDTH as f32 / 2.0);
+        Self { buf: &sloop.buf, incr, cutoff, x: 0.0 }
+    }
+
+    /// Reset the iterator to the beginning of the loop.
+    /// This will ensure that it starts at a zero-crossing.
+    ///
+    /// # Bug
+    ///
+    /// The above assertion is not yet true: samples don't
+    /// necessarily start at zero crossings right now.
+    pub fn reset(&mut self) {
+        self.x = 0.0;
+    }
+}
+
+impl<'a> Iterator for Samples<'a> {
+    type Item = f32;
+
+    /// Return the next sample from the iterator.
+    fn next(&mut self) -> Option<f32> {
+        let s = resamp(self.x, self.buf, self.cutoff, RESAMP_WIDTH);
+        let nbuf = self.buf.len() as f32;
+        self.x += self.incr;
+        while self.x >= nbuf {
+            self.x -= nbuf;
+        }
+        Some(s)
+    }
+}
+
+/// An audio sample loop that has been frequency-analyzed
+/// and trimmed for looping.
+pub struct Loop {
+    buf: Vec<f32>,
+    freq: Option<f32>,
+}
+
+impl Loop {
+    /// Make a `Loop` out of some samples.
+    pub fn new(buf: &[f32]) -> Self {
+        // Find the dominant frequency.
+        let f_max = max_freq(buf);
+        let p = |f| f32::floor(SAMPLE_RATE as f32 / f + 0.5) as usize;
+        let (freq, p_max) = if f_max >= F_MIN && f_max <= F_MAX {
+            (Some(f_max), p(f_max))
+        } else {
+            (None, p(F_MAX))
+        };
+         
+        // Find the best place to close off the loop and do so.
+        let (_, t) = best_loop(buf, 2 * p_max, 0..2 * p_max);
+        let buf = &buf[0..buf.len() - t];
+
+        // Return the loop for future sampling.
+        Self { buf: buf.to_owned(), freq }
+    }
+
+    /// Iterator over the samples of a loop, resampled
+    /// to the given target frequency.
+    pub fn iter<'a>(&'a self, freq: f32) -> Samples<'a> {
+        let incr = match self.freq {
+            Some(f) => freq / f,
+            None => 1.0,
+        };
+        let cutoff = 20_000.0 * f32::min(1.0, incr);
+        Samples::new(&self, incr, cutoff)
+    }
 }
 
 // Rust reimplementation of http://www.nicholson.com/rhn/dsp.html#3
