@@ -3,7 +3,7 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-// Synthesizer demo example using synthkit-rs
+// Synthesizer demo example using synthkit-rs.
 use synthkit::*;
 
 fn main() {
