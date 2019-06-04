@@ -5,9 +5,9 @@
 
 //! Synthesizer MIDI input.
 
+use std::error::Error;
 use std::io;
 use std::sync::mpsc;
-use std::error::Error;
 
 use midir::MidiInput;
 
@@ -21,7 +21,7 @@ use midir::MidiInput;
 /// given name.
 pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
     // Keymap indicating which keys are currently down (true).
-    let mut keymap = [false;128];
+    let mut keymap = [false; 128];
     // Channel for communicating events from midir callback.
     let (sender, receiver) = mpsc::channel();
 
@@ -56,22 +56,21 @@ pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
                         println!("note on: {} {}", message[1], message[2]);
                         keymap[message[1] as usize] = true;
                     }
-                },
+                }
                 // "Note off" message.
                 0x80 => {
                     assert_eq!(message.len(), 3);
                     // Data bytes are key number and velocity.
                     println!("note off: {} {}", message[1], message[2]);
                     keymap[message[1] as usize] = false;
-                },
+                }
                 0xf0 => {
                     match message[0] & 0x0f {
-                        0x0e => return,   // Active Sensing
+                        0x0e => return, // Active Sensing
                         // Other special messages ignored for now.
-                        _ => println!("unrecognized special {:02x}",
-                                      message[0]),
+                        _ => println!("unrecognized special {:02x}", message[0]),
                     }
-                },
+                }
                 // Other messages ignored for now.
                 _ => println!("unrecognized status {:02x}", message[0]),
             }

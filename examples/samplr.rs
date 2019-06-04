@@ -12,5 +12,5 @@ fn main() {
     // Play signal on audio output.
     play(signal).unwrap();
     // Read and decode MIDI keys.
-    read_keys("UX16").unwrap();
+    read_keys("Mobile Keys 49").unwrap();
 }

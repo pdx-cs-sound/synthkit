@@ -26,9 +26,7 @@ lazy_static! {
 }
 
 /// Supply portaudio with a requested chunk of samples.
-fn player(out: pa::OutputStreamCallbackArgs<i16>)
-    -> pa::stream::CallbackResult
-{
+fn player(out: pa::OutputStreamCallbackArgs<i16>) -> pa::stream::CallbackResult {
     // Borrow the sample buffer from the player safely.
     let mut pp = PLAYER.lock().unwrap();
     let pl = pp.as_mut().unwrap();
@@ -54,21 +52,19 @@ pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
     // Install a new player.
     {
         let mut plp = PLAYER.lock()?;
-        *plp = Some(Player{ index: 0, buf });
+        *plp = Some(Player { index: 0, buf });
     }
 
     // Create and initialize audio output.
     let out = pa::PortAudio::new()?;
-    let mut settings =
-        out.default_output_stream_settings(
-            1,   // 1 channel.
-            crate::SAMPLE_RATE as f64,
-            0_u32,   // Least possible buffer.
-        )?;
+    let mut settings = out.default_output_stream_settings(
+        1, // 1 channel.
+        crate::SAMPLE_RATE as f64,
+        0_u32, // Least possible buffer.
+    )?;
     settings.flags = pa::stream_flags::CLIP_OFF;
-    let mut stream =
-        out.open_non_blocking_stream(settings, player)?;
-    
+    let mut stream = out.open_non_blocking_stream(settings, player)?;
+
     // Play 1s of samples and then stop everything.
     stream.start()?;
     out.sleep(1000);
