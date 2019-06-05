@@ -42,6 +42,6 @@ impl<'a> Iterator for Mixer<'a> {
             }
         }
         *old_streams = new_streams;
-        result.map(|s| s / self.nstreams as f32)
+        result.map(|s| s / (2.0 * self.nstreams as f32))
     }
 }

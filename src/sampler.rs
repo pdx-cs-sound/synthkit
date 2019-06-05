@@ -75,22 +75,22 @@ fn test_dot() {
     assert_eq!(14.0, dot(&[1.0, 3.0], &[2.0, 4.0]));
 }
 
-// Given a buffer, a corr length, and a range of ending
-// lags, return the amount to clip off the end of the
-// buffer to get best circular correlation, and the score
-// of that clip.
+// Given a buffer, a corr length, and a range of end
+// segments at lag..0, return the amount to clip off the end
+// of the buffer to get best circular correlation, and the
+// score of that clip.
 fn best_loop(
     buf: &[f32],
     len: usize,
-    lag: std::ops::Range<usize>,
+    lag: usize,
 ) -> (f32, usize) {
     let nbuf = buf.len();
     let mut cinfo: Option<(f32, usize)> = None;
-    for t in lag {
+    for t in (0..lag).rev() {
         let u = nbuf - len - t;
         let corr = dot(&buf[..len], &buf[u..u + len]);
         if cinfo.is_none() || corr > cinfo.unwrap().0 {
-            cinfo = Some((corr, u))
+            cinfo = Some((corr, t))
         }
     }
     cinfo.unwrap()
@@ -167,7 +167,7 @@ impl Loop {
         };
          
         // Find the best place to close off the loop and do so.
-        let (_, t) = best_loop(buf, 2 * p_max, 0..2 * p_max);
+        let (_, t) = best_loop(buf, 2 * p_max, 2 * p_max);
         let buf = &buf[0..buf.len() - t];
 
         // Return the loop for future sampling.

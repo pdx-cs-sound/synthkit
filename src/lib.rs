@@ -9,13 +9,13 @@
 
 mod midi;
 mod play;
-mod sample;
+mod wavio;
 mod sampler;
 mod mixer;
 
 pub use midi::*;
 pub use play::*;
-pub use sample::*;
+pub use wavio::*;
 pub use sampler::*;
 pub use mixer::*;
 
