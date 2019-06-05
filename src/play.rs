@@ -67,7 +67,7 @@ pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
 
     // Play 1s of samples and then stop everything.
     stream.start()?;
-    out.sleep(1000);
+    out.sleep(5000);
     stream.stop()?;
     stream.close()?;
 

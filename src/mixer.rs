@@ -3,13 +3,15 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-pub struct Mixer {
-    streams: Vec<Box<Iterator<Item=f32>>>,
+type Streams<'a> = Vec<Box<Iterator<Item=f32> + 'a>>;
+
+pub struct Mixer<'a> {
+    streams: Streams<'a>,
     nstreams: usize,
 }
 
-impl Mixer {
-    pub fn new(streams: Vec<Box<Iterator<Item=f32>>>) -> Self {
+impl<'a> Mixer<'a> {
+    pub fn new(streams: Streams<'a>) -> Self {
         let nstreams = streams.len();
         Self { streams, nstreams }
     }
@@ -17,15 +19,16 @@ impl Mixer {
 
 /// Iterator over simultaneous streams of samples that adds
 /// them to get a result.
-impl Iterator for Mixer {
+impl<'a> Iterator for Mixer<'a> {
     type Item = f32;
 
     // Get the next mixed sample. We do not assume that
     // the streams are infinite.
     fn next(&mut self) -> Option<f32> {
-        let mut streams = Vec::with_capacity(self.streams.len());
+        let old_streams = &mut self.streams;
+        let mut new_streams = Vec::with_capacity(old_streams.len());
         let mut result = None;
-        for st in &mut self.streams {
+        while let Some(mut st) = old_streams.pop() {
             let v = st.next();
             match v {
                 None => (),
@@ -34,11 +37,11 @@ impl Iterator for Mixer {
                         None => result = Some(s),
                         Some(t) => result = Some(s + t),
                     }
-                    streams.push(*st);
+                    new_streams.push(st);
                 },
             }
         }
-        self.streams = streams;
+        *old_streams = new_streams;
         result.map(|s| s / self.nstreams as f32)
     }
 }

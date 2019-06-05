@@ -30,9 +30,10 @@ fn max_freq(buf: &[f32]) -> f32 {
     // Create a new Signal.
     let signal: Vec<Complex64> = buf
         .iter()
+        .take(NFFT)
         .map(|&s| Complex64::new(f64::from(s), 0.0))
         .collect();
-    let init_size = usize::min(signal.len(), NFFT);
+    let init_size = signal.len();
     let signal = Signal::from_samples(signal, SAMPLE_RATE as usize);
 
     // Window the signal.
