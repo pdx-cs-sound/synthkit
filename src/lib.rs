@@ -11,11 +11,13 @@ mod midi;
 mod play;
 mod sample;
 mod sampler;
+mod mixer;
 
 pub use midi::*;
 pub use play::*;
 pub use sample::*;
 pub use sampler::*;
+pub use mixer::*;
 
 /// The audio sample rate is currently fixed at 48000
 /// samples per second. This constant will be made a

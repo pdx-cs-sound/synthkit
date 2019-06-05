@@ -13,10 +13,12 @@ fn main() {
     let root = 440.0;
     let third = root * f32::pow(2.0, 4.0 / 12);
     let octaves_down = root / 4.0;
-    let mut mixed = mixer([
+    let mut mixed = Mixed::new(vec![
         loop.iter(root),
         loop.iter(third),
         loop.iter(octaves_down),
     ]);
-    
+    let duration = (5.0 * SAMPLE_RATE as f32).floor() as usize;
+    let harmony: Vec<f32> = mixed.iter().take(duration).collect();
+    play(&harmony).unwrap();
 }
