@@ -99,8 +99,8 @@ fn best_loop(
 #[test]
 // Test that the end sample is clipped off a short thing.
 fn test_best_loop() {
-    let samples = [1.0, 1.0, 1.0, 0.0];
-    assert_eq!(1, best_loop(&samples, 2, 0..2).1);
+    let samples = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0];
+    assert_eq!(1, best_loop(&samples, 2, 2).1);
 }
 
 /// Iterator producing resampled audio samples.  This is an

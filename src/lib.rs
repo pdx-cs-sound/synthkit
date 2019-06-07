@@ -12,12 +12,14 @@ mod play;
 mod wavio;
 mod sampler;
 mod mixer;
+mod retain_mut;
 
 pub use midi::*;
 pub use play::*;
 pub use wavio::*;
 pub use sampler::*;
 pub use mixer::*;
+pub use retain_mut::*;
 
 /// The audio sample rate is currently fixed at 48000
 /// samples per second. This constant will be made a
