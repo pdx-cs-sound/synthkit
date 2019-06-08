@@ -3,7 +3,13 @@
 // Please see the file LICENSE in the source
 // distribution of this software for license terms.
 
-use crate::retain_mut;
+// Workaround for `Vec::retain()` passing `&T` instead of
+// `&mut T`. See RFC #2160 and issue #25477 for discussion
+// of inclusion of this in `std` (looks like it won't be),
+// and issue #43244 tracking `Vec::drain_filter()`, which
+// is in nightly as a more general proposed replacement,
+// but currently has stabilization issues.
+use retain_mut::RetainMut;
 
 type Streams<'a> = Vec<Box<Iterator<Item=f32> + 'a>>;
 
@@ -29,7 +35,7 @@ impl<'a> Iterator for Mixer<'a> {
     // the streams are infinite.
     fn next(&mut self) -> Option<f32> {
         let mut result = None;
-        retain_mut(&mut self.streams, |st| {
+        self.streams.retain_mut(|st| {
             match st.next() {
                 Some(t) => {
                     result = result.map(|s| s + t).or_else(|| Some(t));
