@@ -13,7 +13,7 @@ fn main() {
     let root = 440.0;
     let third = root * f32::powf(2.0, 4.0 / 12.0);
     let octaves_down = root / 4.0;
-    let mixer = Mixer::new(vec![
+    let mixer = Mixer::with_streams(vec![
         Box::new(sloop.iter(root)),
         Box::new(sloop.iter(third)),
         Box::new(sloop.iter(octaves_down)),

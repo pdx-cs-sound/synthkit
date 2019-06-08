@@ -11,17 +11,56 @@
 // but currently has stabilization issues.
 use retain_mut::RetainMut;
 
-type Streams<'a> = Vec<Box<Iterator<Item=f32> + 'a>>;
+/// A stream of samples is just an iterator that returns
+/// samples.
+type Stream<'a> = Box<Iterator<Item=f32> + 'a>;
 
+/// A sample "mixer" that adds values from streams
+/// of samples and scales appropriately to get output samples.
+/// Implemented as an unbounded iterator: will return `Some(0.0)`
+/// when no sample streams are available.
 pub struct Mixer<'a> {
-    streams: Streams<'a>,
-    nstreams: usize,
+    /// Active iterators for streams.
+    streams: Vec<Stream<'a>>,
+    /// Current mixer gain value.
+    gain: f32,
 }
 
+/// Max voices before AGC kicks in.
+const AGC_VOICES: usize = 8;
+/// Mixer gain before AGC kicks in.
+const LINEAR_GAIN: f32 = 0.1;
+
 impl<'a> Mixer<'a> {
-    pub fn new(streams: Streams<'a>) -> Self {
-        let nstreams = streams.len();
-        Self { streams, nstreams }
+    /// New mixer with no streams.
+    pub fn new() -> Self {
+        Self { streams: vec![], gain: LINEAR_GAIN }
+    }
+
+    /// New mixer with initial streams.
+    pub fn with_streams(streams: Vec<Stream<'a>>) -> Self {
+        let mut mixer = Self::new();
+        for st in streams {
+            mixer.add(st);
+        }
+        mixer
+    }
+
+    /// Add a stream to the mixer.
+    pub fn add(&mut self, st: Stream<'a>) {
+        self.streams.push(st);
+        self.agc();
+    }
+
+    /// Adjust the gain to avoid clipping while preserving
+    /// some linearity. Essentially a compressor.
+    fn agc(&mut self) {
+        let nstreams = self.streams.len();
+        self.gain = if nstreams <= AGC_VOICES {
+            LINEAR_GAIN
+        } else {
+            LINEAR_GAIN * AGC_VOICES as f32 / nstreams as f32
+        };
     }
 }
 
@@ -35,9 +74,18 @@ impl<'a> Iterator for Mixer<'a> {
     // input streams are infinite, but the output stream is.
     fn next(&mut self) -> Option<f32> {
         let mut result = 0.0;
+        let mut agc = false;
         self.streams.retain_mut(|st| {
-            st.next().map(|s| {result += s; s}).is_some()
+            let s = st.next();
+            match s {
+                Some(s) => result += s,
+                None => agc = true,
+            }
+            s.is_some()
         });
-        Some(result / (2.0 * self.nstreams as f32))
+        if agc {
+            self.agc();
+        }
+        Some(result * self.gain)
     }
 }
