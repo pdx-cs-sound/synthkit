@@ -31,19 +31,13 @@ impl<'a> Mixer<'a> {
 impl<'a> Iterator for Mixer<'a> {
     type Item = f32;
 
-    // Get the next mixed sample. We do not assume that
-    // the streams are infinite.
+    // Get the next mixed sample. We do not assume that the
+    // input streams are infinite, but the output stream is.
     fn next(&mut self) -> Option<f32> {
-        let mut result = None;
+        let mut result = 0.0;
         self.streams.retain_mut(|st| {
-            match st.next() {
-                Some(t) => {
-                    result = result.map(|s| s + t).or_else(|| Some(t));
-                    true
-                },
-                None => false,
-            }
+            st.next().map(|s| {result += s; s}).is_some()
         });
-        result.map(|s| s / (2.0 * self.nstreams as f32))
+        Some(result / (2.0 * self.nstreams as f32))
     }
 }
