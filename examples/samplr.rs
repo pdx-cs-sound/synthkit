@@ -10,7 +10,8 @@ fn main() {
     // Get a signal from a WAV file.
     let signal = get_sample("loop.wav").unwrap();
     // Play signal on audio output.
-    play(signal).unwrap();
+    let samples = Box::new(signal.into_iter());
+    play(samples).unwrap();
     // Read and decode MIDI keys.
     read_keys("Mobile Keys 49").unwrap();
 }
