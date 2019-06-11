@@ -11,9 +11,7 @@
 // but currently has stabilization issues.
 use retain_mut::RetainMut;
 
-/// A stream of samples is just an iterator that returns
-/// samples.
-type Stream<'a> = Box<Iterator<Item=f32> + 'a>;
+use crate::*;
 
 /// A sample "mixer" that adds values from streams
 /// of samples and scales appropriately to get output samples.
@@ -21,7 +19,7 @@ type Stream<'a> = Box<Iterator<Item=f32> + 'a>;
 /// when no sample streams are available.
 pub struct Mixer<'a> {
     /// Active iterators for streams.
-    streams: Vec<Stream<'a>>,
+    streams: Vec<Samples<'a>>,
     /// Current mixer gain value.
     gain: f32,
 }
@@ -38,7 +36,7 @@ impl<'a> Mixer<'a> {
     }
 
     /// New mixer with initial streams.
-    pub fn with_streams(streams: Vec<Stream<'a>>) -> Self {
+    pub fn with_streams(streams: Vec<Samples<'a>>) -> Self {
         let mut mixer = Self::new();
         for st in streams {
             mixer.add(st);
@@ -47,7 +45,7 @@ impl<'a> Mixer<'a> {
     }
 
     /// Add a stream to the mixer.
-    pub fn add(&mut self, st: Stream<'a>) {
+    pub fn add(&mut self, st: Samples<'a>) {
         self.streams.push(st);
         self.agc();
     }
