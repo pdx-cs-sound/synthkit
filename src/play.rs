@@ -5,7 +5,6 @@
 
 //! Synthesizer audio player.
 
-use lazy_static::*;
 use portaudio as pa;
 
 use std::error::Error;
@@ -19,41 +18,34 @@ struct Player {
     buf: Vec<f32>,
 }
 
-lazy_static! {
-    /// Set up safe synchronized global access to the player.
-    static ref PLAYER: Arc<Mutex<Option<Player>>> =
-        Arc::new(Mutex::new(None));
-}
-
-/// Supply portaudio with a requested chunk of samples.
-fn player(out: pa::OutputStreamCallbackArgs<i16>) -> pa::stream::CallbackResult {
-    // Borrow the sample buffer from the player safely.
-    let mut pp = PLAYER.lock().unwrap();
-    let pl = pp.as_mut().unwrap();
-    let nbuf = pl.buf.len();
-
-    // Copy the requested samples into the output buffer,
-    // converting as we go.
-    for i in 0..out.frames {
-        out.buffer[i] = f32::floor(pl.buf[pl.index] * 32768.0f32) as i16;
-        pl.index += 1;
-        if pl.index >= nbuf {
-            pl.index = 0;
-        }
-    }
-
-    // Keep the stream going.
-    pa::Continue
-}
-
 /// Post the given buffer of normalized float samples for
 /// loop playback.
 pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
-    // Install a new player.
-    {
-        let mut plp = PLAYER.lock()?;
-        *plp = Some(Player { index: 0, buf });
-    }
+    // Set up the player.
+    let player =
+        Arc::new(Mutex::new(Player { index: 0, buf }));
+
+    // Callback supplies portaudio with a requested chunk of samples.
+    let playback = move |out: pa::OutputStreamCallbackArgs<i16>|
+                   -> pa::stream::CallbackResult {
+
+        // Borrow the sample buffer from the player safely.
+        let mut pl = player.lock().unwrap();
+        let nbuf = pl.buf.len();
+
+        // Copy the requested samples into the output buffer,
+        // converting as we go.
+        for i in 0..out.frames {
+            out.buffer[i] = f32::floor(pl.buf[pl.index] * 32768.0f32) as i16;
+            pl.index += 1;
+            if pl.index >= nbuf {
+                pl.index = 0;
+            }
+        }
+
+        // Keep the stream going.
+        pa::Continue
+    };
 
     // Create and initialize audio output.
     let out = pa::PortAudio::new()?;
@@ -63,7 +55,7 @@ pub fn play(buf: Vec<f32>) -> Result<(), Box<Error>> {
         0_u32, // Least possible buffer.
     )?;
     settings.flags = pa::stream_flags::CLIP_OFF;
-    let mut stream = out.open_non_blocking_stream(settings, player)?;
+    let mut stream = out.open_non_blocking_stream(settings, playback)?;
 
     // Play 1s of samples and then stop everything.
     stream.start()?;
