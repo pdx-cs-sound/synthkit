@@ -5,7 +5,7 @@
 
 //! Synthesizer audio player.
 
-use portaudio as pa;
+use portaudio_rs as pa;
 
 use std::error::Error;
 
@@ -15,46 +15,43 @@ use crate::*;
 /// XXX This has been carefully tuned to work
 /// around a `portaudio` bug: I do not suggest
 /// changing it.
-const OUT_FRAMES: usize = 12;
+const OUT_FRAMES: usize = 16;
 
 /// Gather samples and post for playback.
 pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
 
-    // Callback supplies portaudio with a requested chunk of samples.
-
     // Create and initialize audio output.
-    let out = pa::PortAudio::new()?;
-    let mut settings = out.default_output_stream_settings(
-        1, // 1 channel.
+    pa::initialize()?;
+    let stream = pa::stream::Stream::open_default(
+        0, // 0 input channels.
+        1, // 1 output channel.
         SAMPLE_RATE as f64,
-        0_u32, // Least possible buffer.
+        pa::stream::FRAMES_PER_BUFFER_UNSPECIFIED, // Least possible buffer.
+        None // No calback.
     )?;
-    settings.flags = pa::stream_flags::CLIP_OFF;
-    let mut stream = out.open_blocking_stream(settings)?;
-
     stream.start()?;
 
-    let mut playing = true;
-    while playing {
-        stream.write(OUT_FRAMES as u32, |out| {
-            let nout = out.len();
-            for i in 0..nout {
-                match samples.next() {
-                    Some(s) => out[i] = f32::floor(s * 32768.0f32) as i16,
-                    None => {
-                        for j in i..nout {
-                            out[j] = 0;
-                        }
-                        playing = false;
-                        return;
-                    },
-                }
+    let mut out = [0.0; OUT_FRAMES];
+    let mut done = false;
+    loop {
+        for i in 0..OUT_FRAMES {
+            match samples.next() {
+                Some(s) => out[i] = s,
+                None => {
+                    for j in i..OUT_FRAMES {
+                        out[j] = 0.0;
+                    }
+                    done = true;
+                },
             }
-        })?;
+        }
+        stream.write(&out)?;
+        if done {
+            break;
+        }
     }
 
     stream.stop()?;
-    stream.close()?;
-
+    pa::terminate()?;
     Ok(())
 }
