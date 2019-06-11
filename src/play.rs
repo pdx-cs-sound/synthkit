@@ -34,22 +34,23 @@ pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
 
     stream.start()?;
 
-    loop {
-        let buf: Vec<i16> = (&mut samples)
-            .take(OUT_FRAMES)
-            .map(|s| f32::floor(s * 32768.0f32) as i16)
-            .collect();
-
-        stream.write(buf.len() as u32, |out| {
-            for i in 0..out.len() {
-                out[i] = buf[i];
+    let mut playing = true;
+    while playing {
+        stream.write(OUT_FRAMES as u32, |out| {
+            let nout = out.len();
+            for i in 0..nout {
+                match samples.next() {
+                    Some(s) => out[i] = f32::floor(s * 32768.0f32) as i16,
+                    None => {
+                        for j in i..nout {
+                            out[j] = 0;
+                        }
+                        playing = false;
+                        return;
+                    },
+                }
             }
         })?;
-
-        // Handle end condition.
-        if buf.len() < OUT_FRAMES {
-            break;
-        }
     }
 
     stream.stop()?;
