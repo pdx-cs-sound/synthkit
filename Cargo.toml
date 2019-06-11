@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 hound = "3.4"
-portaudio="0.7"
+cpal="0.9"
 midir = "0.5"
 dsp = "0.4"
 num-complex = "0.1.43"
