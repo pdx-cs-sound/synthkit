@@ -12,9 +12,6 @@ use std::error::Error;
 use crate::*;
 
 /// Number of samples for a blocking write.
-/// XXX This has been carefully tuned to work
-/// around a `portaudio` bug: I do not suggest
-/// changing it.
 const OUT_FRAMES: usize = 16;
 
 /// Gather samples and post for playback.
@@ -51,7 +48,5 @@ pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
         }
     }
 
-    stream.stop()?;
-    pa::terminate()?;
     Ok(())
 }
