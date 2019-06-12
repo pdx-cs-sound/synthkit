@@ -43,17 +43,17 @@ pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
                     if velocity == 0 {
                         println!("note off: {}", note);
                         keymap[note as usize] = false;
-                        sender.send(NoteOff(c, note, velocity));
+                        sender.send(NoteOff(c, note, velocity)).unwrap();
                     } else {
                         println!("note on: {} {}", note, velocity);
                         keymap[note as usize] = true;
-                        sender.send(NoteOn(c, note, velocity));
+                        sender.send(NoteOn(c, note, velocity)).unwrap();
                     }
                 },
                 NoteOff(c, note, velocity) => {
                     println!("note off: {} {}", note, velocity);
                     keymap[note as usize] = false;
-                    sender.send(NoteOff(c, note, velocity));
+                    sender.send(NoteOff(c, note, velocity)).unwrap();
                 },
                 ActiveSensing => {
                     // Active sensing ignored for now.
