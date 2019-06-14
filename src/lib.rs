@@ -12,7 +12,19 @@ mod play;
 mod wavio;
 mod sampler;
 mod mixer;
+mod crossbeam;
 
+/// These are public to enable version compatibility with
+/// other crates.
+pub use hound;
+pub use cpal;
+pub use midir;
+pub use dsp;
+pub use num_complex;
+pub use crossbeam;
+pub use lazy_static;
+
+/// Synthkit modules.
 pub use midi::*;
 pub use play::*;
 pub use wavio::*;
