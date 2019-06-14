@@ -10,11 +10,8 @@ use std::io::{self, ErrorKind};
 
 use crate::*;
 
-/// Number of samples for a blocking write.
-const OUT_FRAMES: usize = 12;
-
 /// Gather samples and post for playback.
-pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
+pub fn play(samples: Stream) -> Result<(), Box<Error>> {
 
     // Create and initialize audio output.
     let event_loop = cpal::EventLoop::new();
@@ -24,7 +21,7 @@ pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
     let target_rate = cpal::SampleRate(SAMPLE_RATE as u32);
     let has_format = device
         .supported_output_formats()?
-        .find(|&f| {
+        .find(|f| {
             f.channels == 1 &&
                 f.min_sample_rate <= target_rate &&
                 f.max_sample_rate >= target_rate &&
@@ -47,9 +44,11 @@ pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
         use cpal::UnknownTypeOutputBuffer::I16 as UTOB;
         use cpal::StreamData::Output as SDO;
         if let SDO { buffer: UTOB(mut out) } = data {
+            let out = &mut *out;
             let nout = out.len();
+            let mut samples = samples.lock().unwrap();
             for i in 0..nout {
-                match samples.lock().unwrap().next() {
+                match samples.next() {
                     Some(s) => out[i] = f32::floor(s * 32768.0f32) as i16,
                     None => std::process::exit(0),
                 }
