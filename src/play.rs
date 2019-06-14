@@ -40,25 +40,45 @@ pub fn play(samples: Stream) -> Result<(), Box<Error>> {
     event_loop.play_stream(stream);
 
     let samples = &mut std::sync::Arc::new(std::sync::Mutex::new(samples));
-    event_loop.run(|_stream, data| {
-        use cpal::UnknownTypeOutputBuffer::I16 as UTOB;
-        use cpal::StreamData::Output as SDO;
-        if let SDO { buffer: UTOB(mut out) } = data {
-            let out = &mut *out;
-            let nout = out.len();
-            let mut samples = samples.lock().unwrap();
-            for i in 0..nout {
-                match samples.next() {
-                    Some(s) => out[i] = f32::floor(s * 32768.0f32) as i16,
-                    None => std::process::exit(0),
+    let (send, recv) = std::sync::mpsc::channel();
+    crossbeam::scope(|scope| {
+        let samples = samples.clone();
+        let send = send.clone();
+        let event_loop = &event_loop;
+        scope.spawn(move || {
+            event_loop.run(move |stream, data| {
+                use cpal::UnknownTypeOutputBuffer::I16 as UTOB;
+                use cpal::StreamData::Output as SDO;
+                if let SDO { buffer: UTOB(mut out) } = data {
+                    let out = &mut *out;
+                    let nout = out.len();
+                    println!("run {}", nout);
+                    let mut samples = samples.lock().unwrap();
+                    for i in 0..nout {
+                        match samples.next() {
+                            Some(s) => {
+                                out[i] =
+                                    f32::floor(s * 32768.0) as i16;
+                            },
+                            None => {
+                                for j in i..nout {
+                                    out[j] = 0;
+                                }
+                                send.send(()).unwrap();
+                                event_loop.destroy_stream(stream);
+                                break;
+                            },
+                        }
+                    }
+                } else {
+                    panic!("unexpected output buffer type");
                 }
-            }
-        } else {
-            panic!("unexpected output buffer type");
-        }
+            });
+        });
+        println!("spawned");
+        let () = recv.recv().unwrap();
+        println!("done");
     });
 
-    // Should never actually be able to get here.
-    #[allow(unused)]
-    Err(Box::new(io::Error::from(ErrorKind::Interrupted)))
+    Ok(())
 }
