@@ -41,12 +41,13 @@ pub fn play(samples: Stream) -> Result<(), Box<Error>> {
 
     let samples = &mut std::sync::Arc::new(std::sync::Mutex::new(samples));
     let (send, recv) = std::sync::mpsc::channel();
-    crossbeam::scope(|scope| {
+    crossbeam::scope(move |scope| {
         let samples = samples.clone();
         let send = send.clone();
-        let event_loop = &event_loop;
+        let event_loop = event_loop;
         scope.spawn(move || {
-            event_loop.run(move |stream, data| {
+            let event_loop = event_loop;
+            event_loop.run(move |_stream, data| {
                 use cpal::UnknownTypeOutputBuffer::I16 as UTOB;
                 use cpal::StreamData::Output as SDO;
                 if let SDO { buffer: UTOB(mut out) } = data {
@@ -65,7 +66,6 @@ pub fn play(samples: Stream) -> Result<(), Box<Error>> {
                                     out[j] = 0;
                                 }
                                 send.send(()).unwrap();
-                                event_loop.destroy_stream(stream);
                                 break;
                             },
                         }
