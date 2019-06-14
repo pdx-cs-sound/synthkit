@@ -26,4 +26,4 @@ pub const SAMPLE_RATE: u32 = 48_000;
 
 /// A stream of samples is just an iterator that returns
 /// samples.
-pub type Stream<'a> = Box<Iterator<Item=f32> + 'a>;
+pub type Stream<'a> = Box<Iterator<Item=f32> + Send + 'a>;
