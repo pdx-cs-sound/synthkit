@@ -12,7 +12,6 @@ mod play;
 mod wavio;
 mod sampler;
 mod mixer;
-mod crossbeam;
 
 /// These are public to enable version compatibility with
 /// other crates.

@@ -7,47 +7,65 @@
 
 use std::error::Error;
 use std::io::{self, ErrorKind};
+use std::sync::{Arc, Mutex};
 
 use crate::*;
+
+use lazy_static::*;
+
+lazy_static! {
+    static ref PLAYER: Arc<Mutex<Option<Player>>> =
+        Arc::new(Mutex::new(None));
+}
+
+struct Player {
+    event_loop: cpal::EventLoop,
+    device: cpal::Device,
+    format: cpal::Format,
+}
 
 /// Gather samples and post for playback.
 pub fn play(samples: Stream) -> Result<(), Box<Error>> {
 
-    // Create and initialize audio output.
-    let event_loop = cpal::EventLoop::new();
-    let device = cpal::default_output_device()
-        .ok_or_else(||
-            Box::new(io::Error::from(ErrorKind::ConnectionRefused)))?;
-    let target_rate = cpal::SampleRate(SAMPLE_RATE as u32);
-    let has_format = device
-        .supported_output_formats()?
-        .find(|f| {
-            f.channels == 1 &&
-                f.min_sample_rate <= target_rate &&
-                f.max_sample_rate >= target_rate &&
-                f.data_type == cpal::SampleFormat::I16
-        })
-        .is_some();
-    if !has_format {
-        return Err(Box::new(cpal::FormatsEnumerationError::InvalidArgument));
+    // Create and initialize cpal state.
+    {
+        let mut pp = PLAYER.lock()?;
+        if pp.is_none() {
+            let device = cpal::default_output_device()
+                .ok_or_else(|| Box::new(io::Error::from(
+                    ErrorKind::ConnectionRefused)))?;
+            let event_loop = cpal::EventLoop::new();
+            let target_rate = cpal::SampleRate(SAMPLE_RATE as u32);
+            let format = cpal::Format {
+                channels: 1,
+                sample_rate: target_rate,
+                data_type: cpal::SampleFormat::I16,
+            };
+            let player = Player {
+                device,
+                format,
+                event_loop,
+            };
+            *pp = Some(player);
+        }
     }
-    let format = cpal::Format {
-        channels: 1,
-        sample_rate: target_rate,
-        data_type: cpal::SampleFormat::I16,
+    let player = PLAYER.lock()?;
+    let player = match &*player {
+        Some(p) => p,
+        None => panic!("internal error: no player"),
     };
-    let stream = event_loop.build_output_stream(&device, &format)?;
-    event_loop.play_stream(stream);
+
+    let stream = (&player.event_loop)
+        .build_output_stream(&player.device, &player.format)?;
+    (&player.event_loop).play_stream(stream);
 
     let samples = &mut std::sync::Arc::new(std::sync::Mutex::new(samples));
     let (send, recv) = std::sync::mpsc::channel();
     crossbeam::scope(move |scope| {
         let samples = samples.clone();
         let send = send.clone();
-        let event_loop = event_loop;
         scope.spawn(move || {
-            let event_loop = event_loop;
-            event_loop.run(move |_stream, data| {
+            (&player.event_loop).run(move |stream, data| {
                 use cpal::UnknownTypeOutputBuffer::I16 as UTOB;
                 use cpal::StreamData::Output as SDO;
                 if let SDO { buffer: UTOB(mut out) } = data {
@@ -65,6 +83,7 @@ pub fn play(samples: Stream) -> Result<(), Box<Error>> {
                                 for j in i..nout {
                                     out[j] = 0;
                                 }
+                                (&player.event_loop).destroy_stream(stream);
                                 send.send(()).unwrap();
                                 break;
                             },
