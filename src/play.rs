@@ -25,7 +25,7 @@ struct Player {
 }
 
 /// Gather samples and post for playback.
-pub fn play(samples: Stream) -> Result<(), Box<Error>> {
+pub fn play(samples: Stream) -> Result<(), Box<dyn Error>> {
 
     // Create and initialize cpal state.
     {
