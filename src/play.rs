@@ -5,7 +5,7 @@
 
 //! Synthesizer audio player.
 
-use portaudio_rs as pa;
+use portaudio as pa;
 
 use std::error::Error;
 
