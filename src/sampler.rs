@@ -5,9 +5,10 @@
 
 //! Time stretching and pitch shifting of an audio sample.
 
+use std::convert::TryFrom;
 use std::f32::consts::PI;
 
-use dsp::{fft::*, signals::*, windows::*};
+use dsp::{fft::*, windows::*, spectrums};
 use num_complex::*;
 
 use crate::*;
@@ -27,26 +28,27 @@ const NFFT: usize = 16_384;
 
 // Find the maximum frequency of the buffer.
 fn max_freq(buf: &[f32]) -> f32 {
+    // Window the signal.
+    let init_size = buf.len();
+    let window = hamming(init_size, init_size / 2, init_size);
+    let mut signal = Vec::with_capacity(init_size);
+    signal.resize(init_size, 0.0);
+    window.apply(&buf.to_vec(), &mut signal);
+
     // Create a new Signal.
-    let signal: Vec<Complex64> = buf
+    let mut signal: Vec<Complex32> = signal
         .iter()
         .take(NFFT)
-        .map(|&s| Complex64::new(f64::from(s), 0.0))
+        .map(|&s| Complex32::new(s, 0.0))
         .collect();
-    let init_size = signal.len();
-    let signal = Signal::from_samples(signal, SAMPLE_RATE as usize);
-
-    // Window the signal.
-    let window = hamming(init_size);
-    let signal = window.apply(&signal);
 
     // Do the FFT and return the maximum frequency.
-    let mut signal = signal.to_vec();
-    signal.resize(NFFT, Complex64::new(0.0, 0.0));
-    let signal = Signal::from_samples(signal, SAMPLE_RATE as usize);
+    signal.resize(NFFT, Complex32::new(0.0, 0.0));
+    let mut freqs = Vec::with_capacity(NFFT);
+    freqs.resize(NFFT, Complex32::new(0.0, 0.0));
     let mut fft = ForwardFFT::new(NFFT);
-    let f_max = fft.process(&signal).max_freq();
-    f_max as f32
+    fft.process(&mut signal, &mut freqs);
+    spectrums::max_freq(&freqs, usize::try_from(SAMPLE_RATE).unwrap())
 }
 
 #[test]

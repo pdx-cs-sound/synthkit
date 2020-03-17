@@ -10,10 +10,11 @@ authors = ["Bart Massey <bart@cs.pdx.edu>"]
 edition = "2018"
 
 [dependencies]
-hound = "3.4"
+hound = "3.4.0"
 portaudio-rs= "0.3.1"
-midir = "0.5"
-wmidi = "0.1"
-dsp = "0.4"
-num-complex = "0.1.43"
-retain_mut = "0.1"
+midir = "0.5.0"
+wmidi = "3.1.0"
+dsp = "0.6.0"
+num-complex = "0.2.4"
+retain_mut = "0.1.1"
+lazy_static = "1.4.0"
