@@ -5,7 +5,7 @@
 
 //! Synthesizer audio player.
 
-use portaudio as pa;
+use portaudio_rs as pa;
 
 use std::error::Error;
 
@@ -18,7 +18,7 @@ use crate::*;
 const OUT_FRAMES: usize = 16;
 
 /// Gather samples and post for playback.
-pub fn play(mut samples: Stream) -> Result<(), Box<Error>> {
+pub fn play(mut samples: Stream) -> Result<(), Box<dyn Error>> {
 
     // Create and initialize audio output.
     pa::initialize()?;

@@ -11,7 +11,7 @@ use std::io::{self, ErrorKind};
 
 /// Read a sample file and return it as a buffer of
 /// normalized (float) samples.
-pub fn get_sample(name: &str) -> Result<Vec<f32>, Box<Error>> {
+pub fn get_sample(name: &str) -> Result<Vec<f32>, Box<dyn Error>> {
     // Open and check the file.
     let mut wavfile = hound::WavReader::open(name)?;
     let ws = wavfile.spec();
