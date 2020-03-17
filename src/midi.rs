@@ -5,17 +5,24 @@
 
 //! Synthesizer MIDI input.
 
+use std::convert::TryFrom;
 use std::error::Error;
 use std::io;
-use std::sync::mpsc;
+use std::sync::{mpsc, Mutex};
 
-use midir::MidiInput;
+use lazy_static::lazy_static;
+use midir::{MidiInput, MidiInputConnection};
 use wmidi::*;
 use wmidi::MidiMessage::*;
 
+lazy_static! {
+    static ref HANDLER: Mutex<Option<MidiInputConnection<()>>> =
+        Mutex::new(None);
+}
+
 /// Read and process key events from a MIDI keyboard with the
 /// given name.
-pub fn read_keys(port_name: &str) -> Result<(), Box<dyn Error>> {
+pub fn read_keys(port_name: &str) -> Result<mpsc::Receiver<MidiMessage<'static>>, Box<dyn Error>> {
     // Keymap indicating which keys are currently down (true).
     let mut keymap = [false; 128];
     // Channel for communicating events from midir callback.
@@ -32,26 +39,28 @@ pub fn read_keys(port_name: &str) -> Result<(), Box<dyn Error>> {
         .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
 
     // Read and process key events.
-    let _handler = input.connect(
+    let handler = input.connect(
         inport,
         "samplr-input",
         move |_, message: &[u8], _| {
-            let message = MidiMessage::from_bytes(message).unwrap();
+            let message = MidiMessage::try_from(message).unwrap();
             match message {
                 NoteOn(c, note, velocity) => {
+                    let velocity8 = u8::from(velocity);
                     // If velocity is zero, treat as a note off message.
-                    if velocity == 0 {
+                    if velocity8 == 0 {
                         println!("note off: {}", note);
                         keymap[note as usize] = false;
                         sender.send(NoteOff(c, note, velocity)).unwrap();
                     } else {
-                        println!("note on: {} {}", note, velocity);
+                        println!("note on: {} {}", note, velocity8);
                         keymap[note as usize] = true;
                         sender.send(NoteOn(c, note, velocity)).unwrap();
                     }
                 },
                 NoteOff(c, note, velocity) => {
-                    println!("note off: {} {}", note, velocity);
+                    let velocity8 = u8::from(velocity);
+                    println!("note off: {} {}", note, velocity8);
                     keymap[note as usize] = false;
                     sender.send(NoteOff(c, note, velocity)).unwrap();
                 },
@@ -64,10 +73,6 @@ pub fn read_keys(port_name: &str) -> Result<(), Box<dyn Error>> {
         },
         (),
     );
-    // Wait for stop message to leave.
-    loop {
-        let _ = receiver.recv()?;
-    }
-    #[allow(unused)]
-    Ok(())
+    *HANDLER.lock().unwrap() = Some(handler?);
+    Ok(receiver)
 }
