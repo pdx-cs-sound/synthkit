@@ -15,7 +15,7 @@ use wmidi::MidiMessage::*;
 
 /// Read and process key events from a MIDI keyboard with the
 /// given name.
-pub fn read_keys(port_name: &str) -> Result<(), Box<Error>> {
+pub fn read_keys(port_name: &str) -> Result<(), Box<dyn Error>> {
     // Keymap indicating which keys are currently down (true).
     let mut keymap = [false; 128];
     // Channel for communicating events from midir callback.
