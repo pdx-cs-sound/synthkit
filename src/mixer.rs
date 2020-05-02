@@ -37,17 +37,18 @@ impl<'a> Mixer<'a> {
 
     /// New mixer with initial streams.
     pub fn with_streams(streams: Vec<Samples<'a>>) -> Self {
-        let mut mixer = Self::new();
-        for st in streams {
-            mixer.add(st);
-        }
-        mixer
+        Self { streams, gain: LINEAR_GAIN }
     }
 
     /// Add a stream to the mixer.
     pub fn add(&mut self, st: Samples<'a>) {
         self.streams.push(st);
         self.agc();
+    }
+
+    /// Remove all streams from the mixer.
+    pub fn clear(&mut self) {
+        self.streams.clear();
     }
 
     /// Adjust the gain to avoid clipping while preserving
@@ -72,18 +73,17 @@ impl<'a> Iterator for Mixer<'a> {
     // input streams are infinite, but the output stream is.
     fn next(&mut self) -> Option<f32> {
         let mut result = 0.0;
-        let mut agc = false;
         self.streams.retain_mut(|st| {
             let s = st.next();
             match s {
-                Some(s) => result += s,
-                None => agc = true,
+                Some(s) => {
+                    result += s;
+                    true
+                }
+                None => false,
             }
-            s.is_some()
         });
-        if agc {
-            self.agc();
-        }
+        self.agc();
         Some(result * self.gain)
     }
 }

@@ -4,6 +4,9 @@
 // distribution of this software for license terms.
 
 // Harmonizer demo example using synthkit-rs.
+
+use std::sync::Mutex;
+
 use synthkit::*;
 
 fn main() {
@@ -13,10 +16,10 @@ fn main() {
     let root = 440.0;
     let third = root * f32::powf(2.0, 4.0 / 12.0);
     let octaves_down = root / 4.0;
-    let mixer = Box::new(Mixer::with_streams(vec![
-        sloop.iter(root),
-        sloop.iter(third),
-        sloop.iter(octaves_down),
+    let mixer = Mutex::new(Mixer::with_streams(vec![
+        sloop.iter_freq(root),
+        sloop.iter_freq(third),
+        sloop.iter_freq(octaves_down),
     ]));
-    play(mixer).unwrap();
+    play(&mixer).unwrap();
 }

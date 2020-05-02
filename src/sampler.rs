@@ -107,6 +107,7 @@ fn test_best_loop() {
 
 /// Iterator producing resampled audio samples.  This is an
 /// unbounded iterator.
+#[derive(Debug, Clone)]
 pub struct Samples<'a> {
     buf: &'a [f32],
     incr: f32,
@@ -178,7 +179,7 @@ impl Loop {
 
     /// Iterator over the samples of a loop, resampled
     /// to the given target frequency.
-    pub fn iter<'a>(&'a self, freq: f32) -> Samples<'a> {
+    pub fn iter_freq(&self, freq: f32) -> Samples<'_> {
         let incr = match self.freq {
             Some(f) => freq / f,
             None => 1.0,
