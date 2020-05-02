@@ -1,55 +1,66 @@
 # synthkit: Rust Synthesizer Components
 Copyright (c) 2019 Bart Massey
 
-**This is a work in progress** and does not do anything
-useful yet.
+**This is a work in progress** and is barely useful.
 
-This crate provides some components for building music
-synthesizers in Rust.
+This library crate provides some components for building
+music synthesizers in Rust. It is currently focused on
+sampling synthesis, but many of the components could be used
+in some other kind of synthesizer.
+
+The example `harmony` application plays a sample forever as
+three-part harmony: A3 A4 C#4.
 
 The example `samplr` application is a Rust "sampling
 synthesizer". That is, given a sound sample, it will play it
 at various pitches as keys are pressed on a MIDI keyboard.
 
-## Features
+## Status
 
-It is easier to list the features *not intended* for the
-MVP:
+* [x] Basic sampler auto-loop: tries to identify a
+  reasonable loop point using correlation.
 
-* Multiple formats and styles of sample: currently hardcoded
-  to 48Ksps, 1 channel, 16-bit samples.
+* [x] Basic interpolation / resampling: Uses a
+  linear-interpolation and filtering algorithm by
+  Ron Nicholson.
 
-* Sampler:
+* [x] Primitive autotuning: measures the strongest sample
+  frequency within a range of 110-1720Hz.
 
-  * Correct loops: initial plan is to hardcode a loop interval
-    at the end of the sample and interpolate in. This will
-    sound terrible.
+* [x] Replace the callback interface of `portaudio-rs` with a
+  blocking interface.
 
-  * Good interpolation / resampling: initial plan is strictly
-    linear with no filtering.
+* [ ] Full support for MIDI key-off messages.
 
-  * Autotuning: the intended sample frequency will be
-    hardcoded to start.
+* [ ] Support for MIDI messages other than key on-off.
 
-* MIDI:
+* [ ] Re-entrant MIDI to support multiple separate MIDI
+  sources.
 
-  * Support for MIDI messages other than key on-off.
+* [ ] Cleaned-up library interface suitable for use in
+  programs other than the given examples.
 
-  * Replace the callback interface of `midir` with a
-    blocking interface and use a reader thread. This is
-    hard, since it will likely involve rewriting parts of
-    `midir`.
+* [ ] Multiple formats and styles of sample (currently hardcoded
+  to 48000 sps, 1 channel, 16-bit samples).
 
-* Player:
+* [ ] Reliable high-quality sampler auto-loop.
 
-  * Replace the callback interface of `portaudio-rs` with a
-    blocking interface (like the C version of portaudio has)
-    and use a player thread. This is hard, since it will
-    likely involve rewriting parts of `portaudio-rs`.
+* [ ] Up-front octave resampling for better interpolation
+  accuracy at the expense of memory.
 
-So basically, the first working version will be the most
-minimal thing that can enable making a plausible and vaguely
-interesting noise.
+* [ ] Fancy autotuning: deal with harmonics and cover a
+  larger range of sample frequencies.
+
+* [ ] Replace the callback interface of `midir` with a
+  blocking interface and use a reader thread. (This is hard,
+  since it will likely involve rewriting parts of `midir`.)
+
+## Acknowledgments
+
+Thanks to Ron Nicholson for the BASIC code for filtered
+linear interpolation which was adapted to become the heart
+of the resampler. Thanks to the PDX Rust group for valuable
+code feedback and suggestions.
 
 ## License
 
