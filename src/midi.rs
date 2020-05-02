@@ -12,14 +12,17 @@ use std::sync::{mpsc, Mutex};
 
 use midir::{MidiInput, MidiInputConnection};
 use once_cell::sync::OnceCell;
-use wmidi::*;
 use wmidi::MidiMessage::*;
+use wmidi::*;
 
-static HANDLER: OnceCell<Mutex<MidiInputConnection<()>>> = OnceCell::new();
+static HANDLER: OnceCell<Mutex<MidiInputConnection<()>>> =
+    OnceCell::new();
 
 /// Read and process key events from a MIDI keyboard with the
 /// given name.
-pub fn read_keys(port_name: &str) -> Result<mpsc::Receiver<MidiMessage<'static>>, Box<dyn Error>> {
+pub fn read_keys(
+    port_name: &str,
+) -> Result<mpsc::Receiver<MidiMessage<'static>>, Box<dyn Error>> {
     // Keymap indicating which keys are currently down (true).
     let mut keymap = [false; 128];
     // Channel for communicating events from midir callback.
@@ -48,29 +51,32 @@ pub fn read_keys(port_name: &str) -> Result<mpsc::Receiver<MidiMessage<'static>>
                     if velocity8 == 0 {
                         println!("note off: {}", note);
                         keymap[note as usize] = false;
-                        sender.send(NoteOff(c, note, velocity)).unwrap();
+                        sender
+                            .send(NoteOff(c, note, velocity))
+                            .unwrap();
                     } else {
                         println!("note on: {} {}", note, velocity8);
                         keymap[note as usize] = true;
                         sender.send(NoteOn(c, note, velocity)).unwrap();
                     }
-                },
+                }
                 NoteOff(c, note, velocity) => {
                     let velocity8 = u8::from(velocity);
                     println!("note off: {} {}", note, velocity8);
                     keymap[note as usize] = false;
                     sender.send(NoteOff(c, note, velocity)).unwrap();
-                },
+                }
                 ActiveSensing => {
                     // Active sensing ignored for now.
-                },
+                }
                 // Other messages ignored for now.
                 m => println!("unrecognized message {:?}", m),
             }
         },
         (),
     );
-    HANDLER.set(Mutex::new(handler?))
+    HANDLER
+        .set(Mutex::new(handler?))
         .unwrap_or_else(|_| panic!("cannot set handler"));
     Ok(receiver)
 }

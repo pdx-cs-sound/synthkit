@@ -17,9 +17,9 @@ const OUT_FRAMES: usize = 16;
 
 /// Gather samples and post for playback.
 pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
-    where T: Iterator<Item=f32>
+where
+    T: Iterator<Item = f32>,
 {
-
     // Create and initialize audio output.
     pa::initialize()?;
     let stream = pa::stream::Stream::open_default(
@@ -27,7 +27,7 @@ pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
         1, // 1 output channel.
         SAMPLE_RATE as f64,
         pa::stream::FRAMES_PER_BUFFER_UNSPECIFIED, // Least possible buffer.
-        None // No calback.
+        None,                                      // No calback.
     )?;
     stream.start()?;
 
@@ -43,7 +43,7 @@ pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
                         *s = 0.0;
                     }
                     done = true;
-                },
+                }
             }
         }
         stream.write(&out)?;

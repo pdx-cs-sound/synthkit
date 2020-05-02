@@ -28,7 +28,7 @@ fn main() {
     let sound = get_sample(wav).unwrap();
     SLOOP.set(Loop::new(&sound)).unwrap();
     MIXER.set(Mutex::new(Mixer::new())).unwrap();
-    
+
     // Start the keyreader to get input.
     let keystream = read_keys(kbd).unwrap();
     // Start outputting samples.

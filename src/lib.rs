@@ -8,16 +8,16 @@
 //! not yet suitable for general use.
 
 mod midi;
-mod play;
-mod wavio;
-mod sampler;
 mod mixer;
+mod play;
+mod sampler;
+mod wavio;
 
 pub use midi::*;
-pub use play::*;
-pub use wavio::*;
-pub use sampler::*;
 pub use mixer::*;
+pub use play::*;
+pub use sampler::*;
+pub use wavio::*;
 
 /// The audio sample rate is currently fixed at 48000
 /// samples per second. This constant will be made a
@@ -26,4 +26,4 @@ pub const SAMPLE_RATE: u32 = 48_000;
 
 /// A stream of samples is just an iterator that returns
 /// samples.
-pub type Stream<'a> = Box<dyn Iterator<Item=f32> + 'a>;
+pub type Stream<'a> = Box<dyn Iterator<Item = f32> + 'a>;

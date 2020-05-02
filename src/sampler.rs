@@ -8,7 +8,7 @@
 use std::convert::TryFrom;
 use std::f32::consts::PI;
 
-use dsp::{fft::*, windows::*, spectrums};
+use dsp::{fft::*, spectrums, windows::*};
 use num_complex::*;
 
 use crate::*;
@@ -81,11 +81,7 @@ fn test_dot() {
 // segments at lag..0, return the amount to clip off the end
 // of the buffer to get best circular correlation, and the
 // score of that clip.
-fn best_loop(
-    buf: &[f32],
-    len: usize,
-    lag: usize,
-) -> (f32, usize) {
+fn best_loop(buf: &[f32], len: usize, lag: usize) -> (f32, usize) {
     let nbuf = buf.len();
     let mut cinfo: Option<(f32, usize)> = None;
     for t in (0..lag).rev() {
@@ -116,11 +112,15 @@ pub struct Samples<'a> {
 }
 
 impl<'a> Samples<'a> {
-
     // Make a new resampling iterator.
     pub fn new(sloop: &'a Loop, incr: f32, cutoff: f32) -> Self {
         assert!(incr.abs() < RESAMP_WIDTH as f32 / 2.0);
-        Self { buf: &sloop.buf, incr, cutoff, x: 0.0 }
+        Self {
+            buf: &sloop.buf,
+            incr,
+            cutoff,
+            x: 0.0,
+        }
     }
 
     /// Reset the iterator to the beginning of the loop.
@@ -169,13 +169,16 @@ impl Loop {
         } else {
             (None, p(F_MAX))
         };
-         
+
         // Find the best place to close off the loop and do so.
         let (_, t) = best_loop(buf, 2 * p_max, 2 * p_max);
         let buf = &buf[0..buf.len() - t];
 
         // Return the loop for future sampling.
-        Self { buf: buf.to_owned(), freq }
+        Self {
+            buf: buf.to_owned(),
+            freq,
+        }
     }
 
     /// Iterator over the samples of a loop, resampled
@@ -202,7 +205,9 @@ fn resamp(x: f32, indat: &[f32], fmax: f32, wnwdth: i64) -> f32 {
     for i in -wnwdth / 2..wnwdth / 2 - 1 {
         // Calc input sample index.
         let j = (x + i as f32).floor();
-        let r_w = 0.5 - 0.5 * f32::cos(2.0 * PI * (0.5 + (j - x) / wnwdth as f32));
+        let r_w = 0.5
+            - 0.5
+                * f32::cos(2.0 * PI * (0.5 + (j - x) / wnwdth as f32));
         let r_a = 2.0 * PI * (j - x) * fmax / SAMPLE_RATE as f32;
         let r_snc = if j - x == 0.0 {
             1.0
@@ -230,7 +235,7 @@ fn resamp(x: f32, indat: &[f32], fmax: f32, wnwdth: i64) -> f32 {
 // rem : wnwdth = width of windowed Sinc used as the low pass filter
 // rem
 // rem resamp() returns a filtered new sample point
-// 
+//
 // sub resamp(x, indat, alim, fmax, fsr, wnwdth)
 //   local i,j, r_g,r_w,r_a,r_snc,r_y	: rem some local variables
 //   r_g = 2 * fmax / fsr           : rem Calc gain correction factor
@@ -247,7 +252,7 @@ fn resamp(x: f32, indat: &[f32], fmax: f32, wnwdth: i64) -> f32 {
 //   next i
 //   resamp = r_y                  : rem Return new filtered sample
 // end sub
-// 
+//
 // rem  - Ron Nicholson's QDSS ReSampler cookbook recipe
 // rem                 QDSS = Quick, Dirty, Simple and Short
 // rem  Version 0.1b - 2007-Aug-01

@@ -39,12 +39,18 @@ const LINEAR_GAIN: f32 = 0.1;
 impl<'a> Mixer<'a> {
     /// New mixer with no streams.
     pub fn new() -> Self {
-        Self { streams: vec![], gain: LINEAR_GAIN }
+        Self {
+            streams: vec![],
+            gain: LINEAR_GAIN,
+        }
     }
 
     /// New mixer with initial streams.
     pub fn with_streams(streams: Vec<Samples<'a>>) -> Self {
-        Self { streams, gain: LINEAR_GAIN }
+        Self {
+            streams,
+            gain: LINEAR_GAIN,
+        }
     }
 
     /// Add a stream to the mixer.
@@ -69,7 +75,6 @@ impl<'a> Mixer<'a> {
         };
     }
 }
-
 
 /// Iterator over simultaneous streams of samples that adds
 /// them to get a result.
