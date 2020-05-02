@@ -15,7 +15,9 @@ The example `samplr` application is a Rust "sampling
 synthesizer". That is, given a sound sample, it will play it
 at various pitches as keys are pressed on a MIDI keyboard.
 
-## Status
+## Status / Roadmap
+
+### Immediate Goals
 
 * [x] Basic sampler auto-loop: tries to identify a
   reasonable loop point using correlation.
@@ -32,13 +34,19 @@ at various pitches as keys are pressed on a MIDI keyboard.
 
 * [ ] Full support for MIDI key-off messages.
 
+* [ ] ADS envelope.
+
+* [ ] ADSR envelope with same-note replacement.
+
+* [ ] Cleaned-up library interface suitable for use in
+  programs other than the given examples.
+
+### Long-Term Goals
+
 * [ ] Support for MIDI messages other than key on-off.
 
 * [ ] Re-entrant MIDI to support multiple separate MIDI
   sources.
-
-* [ ] Cleaned-up library interface suitable for use in
-  programs other than the given examples.
 
 * [ ] Multiple formats and styles of sample (currently hardcoded
   to 48000 sps, 1 channel, 16-bit samples).
