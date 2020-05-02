@@ -10,15 +10,12 @@ use std::error::Error;
 use std::io;
 use std::sync::{mpsc, Mutex};
 
-use lazy_static::lazy_static;
 use midir::{MidiInput, MidiInputConnection};
+use once_cell::sync::OnceCell;
 use wmidi::*;
 use wmidi::MidiMessage::*;
 
-lazy_static! {
-    static ref HANDLER: Mutex<Option<MidiInputConnection<()>>> =
-        Mutex::new(None);
-}
+static HANDLER: OnceCell<Mutex<MidiInputConnection<()>>> = OnceCell::new();
 
 /// Read and process key events from a MIDI keyboard with the
 /// given name.
@@ -73,6 +70,7 @@ pub fn read_keys(port_name: &str) -> Result<mpsc::Receiver<MidiMessage<'static>>
         },
         (),
     );
-    *HANDLER.lock().unwrap() = Some(handler?);
+    HANDLER.set(Mutex::new(handler?))
+        .unwrap_or_else(|_| panic!("cannot set handler"));
     Ok(receiver)
 }

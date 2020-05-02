@@ -152,6 +152,7 @@ impl<'a> Iterator for Samples<'a> {
 
 /// An audio sample loop that has been frequency-analyzed
 /// and trimmed for looping.
+#[derive(Debug)]
 pub struct Loop {
     buf: Vec<f32>,
     freq: Option<f32>,

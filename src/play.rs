@@ -5,10 +5,11 @@
 
 //! Synthesizer audio player.
 
-use portaudio_rs as pa;
-
 use std::error::Error;
 use std::sync::Mutex;
+
+use once_cell::sync::OnceCell;
+use portaudio_rs as pa;
 
 use crate::*;
 
@@ -16,7 +17,7 @@ use crate::*;
 const OUT_FRAMES: usize = 16;
 
 /// Gather samples and post for playback.
-pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
+pub fn play<T>(samples: &OnceCell<Mutex<T>>) -> Result<(), Box<dyn Error>>
     where T: Iterator<Item=f32>
 {
 
@@ -34,7 +35,7 @@ pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
     let mut out = [0.0; OUT_FRAMES];
     let mut done = false;
     loop {
-        let mut samples = samples.lock().unwrap();
+        let mut samples = samples.get().unwrap().lock().unwrap();
         for i in 0..OUT_FRAMES {
             match samples.next() {
                 Some(s) => out[i] = s,

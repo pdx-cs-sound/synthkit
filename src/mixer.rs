@@ -17,6 +17,7 @@ use crate::*;
 /// of samples and scales appropriately to get output samples.
 /// Implemented as an unbounded iterator: will return `Some(0.0)`
 /// when no sample streams are available.
+#[derive(Debug)]
 pub struct Mixer<'a> {
     /// Active iterators for streams.
     streams: Vec<Samples<'a>>,
