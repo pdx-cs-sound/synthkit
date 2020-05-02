@@ -33,7 +33,7 @@ fn main() {
     let keystream = read_keys(kbd).unwrap();
     // Start outputting samples.
     let player = thread::spawn(|| {
-        play(&MIXER).unwrap();
+        play(MIXER.get().unwrap()).unwrap();
     });
     for kev in keystream {
         match kev {
