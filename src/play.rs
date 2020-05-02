@@ -13,7 +13,7 @@ use portaudio_rs as pa;
 use crate::*;
 
 /// Number of samples for a blocking write.
-const OUT_FRAMES: usize = 16;
+const OUT_FRAMES: usize = 240;
 
 /// Gather samples and post for playback.
 pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
@@ -34,15 +34,19 @@ where
     let mut out = [0.0; OUT_FRAMES];
     let mut done = false;
     loop {
-        let mut samples = samples.lock().unwrap();
-        for i in 0..OUT_FRAMES {
-            match samples.next() {
-                Some(s) => out[i] = s,
-                None => {
-                    for s in &mut out[i..OUT_FRAMES] {
-                        *s = 0.0;
+        {
+            // Be sure to unlock by dropping the stream guard
+            // before blocking in `write()`.
+            let mut samples = samples.lock().unwrap();
+            for i in 0..OUT_FRAMES {
+                match samples.next() {
+                    Some(s) => out[i] = s,
+                    None => {
+                        for s in &mut out[i..OUT_FRAMES] {
+                            *s = 0.0;
+                        }
+                        done = true;
                     }
-                    done = true;
                 }
             }
         }

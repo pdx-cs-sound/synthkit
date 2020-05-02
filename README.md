@@ -34,7 +34,7 @@ at various pitches as keys are pressed on a MIDI keyboard.
 
 * [x] Full support for MIDI key-off messages.
 
-* [ ] Fix unbearable latency.
+* [x] Fix unbearable latency.
 
 * [ ] ADS envelope.
 
