@@ -39,8 +39,8 @@ pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
             match samples.next() {
                 Some(s) => out[i] = s,
                 None => {
-                    for j in i..OUT_FRAMES {
-                        out[j] = 0.0;
+                    for s in &mut out[i..OUT_FRAMES] {
+                        *s = 0.0;
                     }
                     done = true;
                 },

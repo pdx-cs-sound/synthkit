@@ -5,7 +5,6 @@
 
 //! Synthesizer sample file reader.
 
-use hound;
 use std::error::Error;
 use std::io::{self, ErrorKind};
 

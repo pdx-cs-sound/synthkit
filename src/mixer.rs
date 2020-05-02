@@ -25,6 +25,12 @@ pub struct Mixer<'a> {
     gain: f32,
 }
 
+impl<'a> Default for Mixer<'a> {
+    fn default() -> Self {
+        Mixer::new()
+    }
+}
+
 /// Max voices before AGC kicks in.
 const AGC_VOICES: usize = 8;
 /// Mixer gain before AGC kicks in.
