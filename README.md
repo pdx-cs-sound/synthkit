@@ -9,7 +9,7 @@ sampling synthesis, but many of the components could be used
 in some other kind of synthesizer.
 
 The example `harmony` application plays a sample forever as
-three-part harmony: A3 A4 C#4.
+three-part harmony: A2 A4 C#5.
 
 The example `samplr` application is a Rust "sampling
 synthesizer". That is, given a sound sample, it will play it
@@ -32,7 +32,9 @@ at various pitches as keys are pressed on a MIDI keyboard.
 * [x] Replace the callback interface of `portaudio-rs` with a
   blocking interface.
 
-* [ ] Full support for MIDI key-off messages.
+* [x] Full support for MIDI key-off messages.
+
+* [ ] Fix unbearable latency.
 
 * [ ] ADS envelope.
 
@@ -47,6 +49,8 @@ at various pitches as keys are pressed on a MIDI keyboard.
 
 * [ ] Re-entrant MIDI to support multiple separate MIDI
   sources.
+
+* [ ] Support for non-key sample playing in mixer.
 
 * [ ] Multiple formats and styles of sample (currently hardcoded
   to 48000 sps, 1 channel, 16-bit samples).

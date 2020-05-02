@@ -41,11 +41,13 @@ fn main() {
                 let gsloop = SLOOP.get().unwrap();
                 let mut gmixer = MIXER.get().unwrap().lock().unwrap();
                 let samples = gsloop.iter_freq(note.to_freq_f32());
-                gmixer.borrow_mut().add(samples.clone());
+                let key = usize::from(note as u8);
+                gmixer.borrow_mut().add_key(key, samples);
             }
-            NoteOff(_c, _note, _vel) => {
+            NoteOff(_c, note, _vel) => {
                 let mut gmixer = MIXER.get().unwrap().lock().unwrap();
-                gmixer.clear()
+                let key = usize::from(note as u8);
+                gmixer.borrow_mut().remove_key(key);
             }
             _ => (),
         }

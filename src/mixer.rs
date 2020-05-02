@@ -9,18 +9,19 @@
 // and issue #43244 tracking `Vec::drain_filter()`, which
 // is in nightly as a more general proposed replacement,
 // but currently has stabilization issues.
-use retain_mut::RetainMut;
+use std::collections::HashMap;
 
 use crate::*;
 
-/// A sample "mixer" that adds values from streams
-/// of samples and scales appropriately to get output samples.
-/// Implemented as an unbounded iterator: will return `Some(0.0)`
-/// when no sample streams are available.
+/// A sample "mixer" that adds values from streams of
+/// samples (currently always associated with a key) and
+/// scales appropriately to get output samples.  Implemented
+/// as an unbounded iterator: will return `Some(0.0)` when
+/// no sample streams are available.
 #[derive(Debug)]
 pub struct Mixer<'a> {
-    /// Active iterators for streams.
-    streams: Vec<Samples<'a>>,
+    /// Held key indexes and samples.
+    held: HashMap<usize, Samples<'a>>,
     /// Current mixer gain value.
     gain: f32,
 }
@@ -40,34 +41,41 @@ impl<'a> Mixer<'a> {
     /// New mixer with no streams.
     pub fn new() -> Self {
         Self {
-            streams: vec![],
+            held: HashMap::with_capacity(128),
             gain: LINEAR_GAIN,
         }
     }
 
     /// New mixer with initial streams.
-    pub fn with_streams(streams: Vec<Samples<'a>>) -> Self {
-        Self {
-            streams,
-            gain: LINEAR_GAIN,
+    pub fn with_streams(streams: Vec<(usize, Samples<'a>)>) -> Self {
+        let mut result = Self::new();
+        for (k, s) in streams.into_iter() {
+            result.add_key(k, s);
         }
+        result
     }
 
     /// Add a stream to the mixer.
-    pub fn add(&mut self, st: Samples<'a>) {
-        self.streams.push(st);
+    pub fn add_key(&mut self, key: usize, st: Samples<'a>) {
+        let was_held = self.held.insert(key, st);
+        assert!(was_held.is_none());
         self.agc();
+    }
+
+    /// Remove a stream from the mixer by key.
+    pub fn remove_key(&mut self, key: usize) {
+        self.held.remove(&key);
     }
 
     /// Remove all streams from the mixer.
     pub fn clear(&mut self) {
-        self.streams.clear();
+        self.held.clear();
     }
 
     /// Adjust the gain to avoid clipping while preserving
     /// some linearity. Essentially a compressor.
     fn agc(&mut self) {
-        let nstreams = self.streams.len();
+        let nstreams = self.held.len();
         self.gain = if nstreams <= AGC_VOICES {
             LINEAR_GAIN
         } else {
@@ -85,16 +93,17 @@ impl<'a> Iterator for Mixer<'a> {
     // input streams are infinite, but the output stream is.
     fn next(&mut self) -> Option<f32> {
         let mut result = 0.0;
-        self.streams.retain_mut(|st| {
+        let mut finished = Vec::new();
+        for (k, st) in self.held.iter_mut() {
             let s = st.next();
             match s {
-                Some(s) => {
-                    result += s;
-                    true
-                }
-                None => false,
+                Some(s) => result += s,
+                None => finished.push(*k),
             }
-        });
+        }
+        for k in finished {
+            self.remove_key(k);
+        }
         self.agc();
         Some(result * self.gain)
     }

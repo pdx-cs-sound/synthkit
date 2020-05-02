@@ -17,9 +17,9 @@ fn main() {
     let third = root * f32::powf(2.0, 4.0 / 12.0);
     let octaves_down = root / 4.0;
     let mixer = Mutex::new(Mixer::with_streams(vec![
-        sloop.iter_freq(root),
-        sloop.iter_freq(third),
-        sloop.iter_freq(octaves_down),
+        (69, sloop.iter_freq(root)),   // A4
+        (73, sloop.iter_freq(third)),   //C#5
+        (45, sloop.iter_freq(octaves_down)),   // A2
     ]));
     play(&mixer).unwrap();
 }
