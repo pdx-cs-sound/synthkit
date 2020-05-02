@@ -23,8 +23,6 @@ static HANDLER: OnceCell<Mutex<MidiInputConnection<()>>> =
 pub fn read_keys(
     port_name: &str,
 ) -> Result<mpsc::Receiver<MidiMessage<'static>>, Box<dyn Error>> {
-    // Keymap indicating which keys are currently down (true).
-    let mut keymap = [false; 128];
     // Channel for communicating events from midir callback.
     let (sender, receiver) = mpsc::channel();
 
@@ -50,20 +48,17 @@ pub fn read_keys(
                     // If velocity is zero, treat as a note off message.
                     if velocity8 == 0 {
                         println!("note off: {}", note);
-                        keymap[note as usize] = false;
                         sender
                             .send(NoteOff(c, note, velocity))
                             .unwrap();
                     } else {
                         println!("note on: {} {}", note, velocity8);
-                        keymap[note as usize] = true;
                         sender.send(NoteOn(c, note, velocity)).unwrap();
                     }
                 }
                 NoteOff(c, note, velocity) => {
                     let velocity8 = u8::from(velocity);
                     println!("note off: {} {}", note, velocity8);
-                    keymap[note as usize] = false;
                     sender.send(NoteOff(c, note, velocity)).unwrap();
                 }
                 ActiveSensing => {
