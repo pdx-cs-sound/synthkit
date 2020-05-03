@@ -40,6 +40,8 @@ at various pitches as keys are pressed on a MIDI keyboard.
 
 * [ ] ADSR envelope with same-note replacement.
 
+* [ ] Add key velocity handling.
+
 * [ ] Cleaned-up library interface suitable for use in
   programs other than the given examples.
 
