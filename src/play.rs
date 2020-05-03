@@ -50,7 +50,17 @@ where
                 }
             }
         }
-        stream.write(&out)?;
+        stream
+            .write(&out)
+            .or_else(|e| {
+                match e {
+                    pa::PaError::OutputUnderflowed => {
+                        eprintln!("player underrun");
+                        Ok(())
+                    }
+                    e => Err(e),
+                }
+            })?;
         if done {
             break;
         }
