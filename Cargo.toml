@@ -10,10 +10,13 @@ authors = ["Bart Massey <bart@cs.pdx.edu>"]
 edition = "2018"
 
 [dependencies]
-hound = "3.4.0"
-portaudio-rs= "0.3.1"
-midir = "0.5.0"
-wmidi = "3.1.0"
-dsp = "0.6.0"
-num-complex = "0.2.4"
-once_cell = "1.3.1"
+hound = "3.4"
+midir = "0.5"
+wmidi = "3.1"
+dsp = "0.6"
+num-complex = "0.2"
+once_cell = "1.3"
+
+[dependencies.portaudio-rs]
+version = "0.3.2"
+git = "https://github.com/BartMassey/portaudio-rs"
