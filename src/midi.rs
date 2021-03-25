@@ -8,15 +8,11 @@
 use std::convert::TryFrom;
 use std::error::Error;
 use std::io;
-use std::sync::{mpsc, Mutex};
+use std::sync::mpsc;
 
-use midir::{MidiInput, MidiInputConnection};
-use once_cell::sync::OnceCell;
+use midir::MidiInput;
 use wmidi::MidiMessage::*;
 use wmidi::*;
-
-static HANDLER: OnceCell<Mutex<MidiInputConnection<()>>> =
-    OnceCell::new();
 
 /// Read and process key events from a MIDI keyboard with the
 /// given name.
@@ -70,8 +66,6 @@ pub fn read_keys(
         },
         (),
     );
-    HANDLER
-        .set(Mutex::new(handler?))
-        .unwrap_or_else(|_| panic!("cannot set handler"));
+    std::mem::forget(handler?);
     Ok(receiver)
 }
