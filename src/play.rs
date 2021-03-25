@@ -13,7 +13,7 @@ use portaudio_rs as pa;
 use crate::*;
 
 /// Number of samples for a blocking write.
-const OUT_FRAMES: usize = 240;
+const OUT_FRAMES: usize = 24;
 
 /// Gather samples and post for playback.
 pub fn play<T>(samples: &Mutex<T>) -> Result<(), Box<dyn Error>>
