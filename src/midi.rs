@@ -20,7 +20,7 @@ pub fn read_keys(
     port_name: &str,
 ) -> Result<mpsc::Receiver<MidiMessage<'static>>, Box<dyn Error>> {
     // Channel for communicating events from midir callback.
-    let (sender, receiver) = mpsc::channel();
+    let (sender, receiver) = mpsc::sync_channel(0);
 
     // Set up for reading key events.
     let input = MidiInput::new("samplr")?;
@@ -43,19 +43,19 @@ pub fn read_keys(
                     let velocity8 = u8::from(velocity);
                     // If velocity is zero, treat as a note off message.
                     if velocity8 == 0 {
-                        println!("note off: {}", note);
                         sender
                             .send(NoteOff(c, note, velocity))
                             .unwrap();
+                        println!("note off: {}", note);
                     } else {
-                        println!("note on: {} {}", note, velocity8);
                         sender.send(NoteOn(c, note, velocity)).unwrap();
+                        println!("note on: {} {}", note, velocity8);
                     }
                 }
                 NoteOff(c, note, velocity) => {
                     let velocity8 = u8::from(velocity);
-                    println!("note off: {} {}", note, velocity8);
                     sender.send(NoteOff(c, note, velocity)).unwrap();
+                    println!("note off: {} {}", note, velocity8);
                 }
                 ActiveSensing => {
                     // Active sensing ignored for now.
