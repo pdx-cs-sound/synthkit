@@ -24,17 +24,19 @@ pub fn read_keys(
 
     // Set up for reading key events.
     let input = MidiInput::new("samplr")?;
-    let inport = (0..input.port_count())
+    let inport = input
+        .ports()
+        .into_iter()
         .find(|p| {
-            let name = input.port_name(*p).unwrap();
-            let port_index = name.rfind(' ').unwrap();
+            let name = input.port_name(p).unwrap();
+            let port_index = name.find(':').unwrap();
             &name[..port_index] == port_name
         })
         .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
 
     // Read and process key events.
     let handler = input.connect(
-        inport,
+        &inport,
         "samplr-input",
         move |_, message: &[u8], _| {
             let message = MidiMessage::try_from(message).unwrap();

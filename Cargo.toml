@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 hound = "3.4.0"
-midir = "0.5"
+midir = "0.7.0"
 wmidi = "4.0.4"
 dsp = "0.8.1"
 num-complex = "0.2"
