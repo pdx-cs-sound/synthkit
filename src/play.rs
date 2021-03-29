@@ -18,13 +18,14 @@ pub struct Player {
 }
 
 /// Gather samples and post for playback.
-pub fn play(stream: &'static Mutex<Mixer<'static>>) -> Result<Player, Box<dyn Error>> {
-
+pub fn play(
+    stream: &'static Mutex<Mixer<'static>>,
+) -> Result<Player, Box<dyn Error>> {
     // Get the device.
     let host = cpal::default_host();
-    let device = host.default_output_device()
-        .ok_or_else(|| Box::new(io::Error::from(
-            ErrorKind::ConnectionRefused)))?;
+    let device = host.default_output_device().ok_or_else(|| {
+        Box::new(io::Error::from(ErrorKind::ConnectionRefused))
+    })?;
 
     // Config matcher.
     let target_rate = cpal::SampleRate(SAMPLE_RATE as u32);
@@ -43,10 +44,14 @@ pub fn play(stream: &'static Mutex<Mixer<'static>>) -> Result<Player, Box<dyn Er
                 continue;
             }
             let buffer_size = match config_range.buffer_size() {
-                cpal::SupportedBufferSize::Range {min, max} => {
-                    cpal::BufferSize::Fixed((*min).max(WANT_BUFSIZE.min(*max)))
+                cpal::SupportedBufferSize::Range { min, max } => {
+                    cpal::BufferSize::Fixed(
+                        (*min).max(WANT_BUFSIZE.min(*max)),
+                    )
                 }
-                cpal::SupportedBufferSize::Unknown => cpal::BufferSize::Default,
+                cpal::SupportedBufferSize::Unknown => {
+                    cpal::BufferSize::Default
+                }
             };
             let config = cpal::StreamConfig {
                 channels: 1,
@@ -62,29 +67,33 @@ pub fn play(stream: &'static Mutex<Mixer<'static>>) -> Result<Player, Box<dyn Er
     let config = config_matcher(&device)?;
 
     // Build player callback.
-    let data_callback = move |out: &mut [i16], _info: &cpal::OutputCallbackInfo| {
-        let mut samples = stream.lock().unwrap();
-        let nout = out.len();
-        for i in 0..nout {
-            match samples.next() {
-                Some(s) => {
-                    out[i] = f32::floor(s * 32767.0) as i16;
-                },
-                None => {
-                    #[allow(clippy::needless_range_loop)]
-                    for j in i..nout {
-                        out[j] = 0;
+    let data_callback =
+        move |out: &mut [i16], _info: &cpal::OutputCallbackInfo| {
+            let mut samples = stream.lock().unwrap();
+            let nout = out.len();
+            for i in 0..nout {
+                match samples.next() {
+                    Some(s) => {
+                        out[i] = f32::floor(s * 32767.0) as i16;
                     }
-                    // XXX Handle takedown somehow.
-                    break;
-                },
+                    None => {
+                        #[allow(clippy::needless_range_loop)]
+                        for j in i..nout {
+                            out[j] = 0;
+                        }
+                        // XXX Handle takedown somehow.
+                        break;
+                    }
+                }
             }
-        }
-    };
+        };
 
     // Build player error callback.
     let error_callback = |err| {
-        eprintln!("an error occurred on the output audio stream: {}", err);
+        eprintln!(
+            "an error occurred on the output audio stream: {}",
+            err
+        );
         std::process::exit(1);
     };
 
