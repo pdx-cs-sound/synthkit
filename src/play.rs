@@ -7,7 +7,7 @@
 
 use std::error::Error;
 use std::io::{self, ErrorKind};
-use std::sync::Mutex;
+use std::sync::{Arc, Condvar, Mutex};
 
 use cpal::traits::*;
 
@@ -15,6 +15,14 @@ use crate::*;
 
 pub struct Player {
     _stream: cpal::Stream,
+    blocker: Arc<(Mutex<bool>, Condvar)>,
+}
+
+impl Player {
+    pub fn block(&self) {
+        let (lock, cvar) = &*self.blocker;
+        let _guard = cvar.wait_while(lock.lock().unwrap(), |pending| *pending).unwrap();
+    }
 }
 
 /// Gather samples and post for playback.
@@ -66,6 +74,9 @@ pub fn play(
     // Try to find a matching config.
     let config = config_matcher(&device)?;
 
+    let blocker = Arc::new((Mutex::new(true), Condvar::new()));
+    let data_blocker = Arc::clone(&blocker);
+
     // Build player callback.
     let data_callback =
         move |out: &mut [i16], _info: &cpal::OutputCallbackInfo| {
@@ -81,7 +92,11 @@ pub fn play(
                         for j in i..nout {
                             out[j] = 0;
                         }
-                        // XXX Handle takedown somehow.
+                        eprintln!("shutting down");
+                        let (lock, cvar) = &*data_blocker;
+                        let mut pending = lock.lock().unwrap();
+                        *pending = false;
+                        cvar.notify_all();
                         break;
                     }
                 }
@@ -105,5 +120,9 @@ pub fn play(
     )?;
     stream.play()?;
 
-    Ok(Player { _stream: stream })
+    let player = Player {
+        _stream: stream,
+        blocker,
+    };
+    Ok(player)
 }
