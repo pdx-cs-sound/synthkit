@@ -7,7 +7,6 @@
 
 use std::borrow::BorrowMut;
 use std::sync::Mutex;
-use std::thread;
 
 use once_cell::sync::OnceCell;
 use wmidi::MidiMessage::*;
@@ -32,9 +31,7 @@ fn main() {
     // Start the keyreader to get input.
     let keystream = read_keys(kbd).unwrap();
     // Start outputting samples.
-    let player = thread::spawn(|| {
-        play(MIXER.get().unwrap()).unwrap();
-    });
+    let _player = play(MIXER.get().unwrap()).unwrap();
     for kev in keystream {
         match kev {
             NoteOn(_c, note, _vel) => {
@@ -54,5 +51,4 @@ fn main() {
             _ => (),
         }
     }
-    player.join().unwrap();
 }
