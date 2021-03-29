@@ -7,6 +7,7 @@
 
 use std::error::Error;
 use std::io::{self, ErrorKind};
+use std::sync::Mutex;
 
 use cpal::traits::*;
 
@@ -17,7 +18,7 @@ pub struct Player {
 }
 
 /// Gather samples and post for playback.
-pub fn play<'a>(stream: &'static std::sync::Mutex<(dyn Iterator<Item = f32> + Send + 'static)>) -> Result<Player, Box<dyn Error + 'a>> {
+pub fn play(stream: &'static Mutex<Mixer<'static>>) -> Result<Player, Box<dyn Error>> {
 
     // Get the device.
     let host = cpal::default_host();
@@ -43,7 +44,6 @@ pub fn play<'a>(stream: &'static std::sync::Mutex<(dyn Iterator<Item = f32> + Se
             }
             let buffer_size = match config_range.buffer_size() {
                 cpal::SupportedBufferSize::Range {min, max} => {
-                    eprintln!("buffer size {}..{}", min, max);
                     cpal::BufferSize::Fixed((*min).max(WANT_BUFSIZE.min(*max)))
                 }
                 cpal::SupportedBufferSize::Unknown => cpal::BufferSize::Default,
@@ -53,9 +53,6 @@ pub fn play<'a>(stream: &'static std::sync::Mutex<(dyn Iterator<Item = f32> + Se
                 sample_rate: target_rate,
                 buffer_size,
             };
-            // let config = config_range.with_sample_rate(target_rate);
-            // let config = config.config();
-            eprintln!("config {:#?}", config);
             return Ok(config);
         }
         Err(cpal::SupportedStreamConfigsError::DeviceNotAvailable)
@@ -68,7 +65,6 @@ pub fn play<'a>(stream: &'static std::sync::Mutex<(dyn Iterator<Item = f32> + Se
     let data_callback = move |out: &mut [i16], _info: &cpal::OutputCallbackInfo| {
         let mut samples = stream.lock().unwrap();
         let nout = out.len();
-        // println!("run {}", nout);
         for i in 0..nout {
             match samples.next() {
                 Some(s) => {
@@ -100,6 +96,5 @@ pub fn play<'a>(stream: &'static std::sync::Mutex<(dyn Iterator<Item = f32> + Se
     )?;
     stream.play()?;
 
-    eprintln!("stream built");
     Ok(Player { _stream: stream })
 }
