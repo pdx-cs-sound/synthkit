@@ -5,11 +5,15 @@
 
 //! Time stretching and pitch shifting of an audio sample.
 
-use std::convert::TryFrom;
 use std::f32::consts::PI;
 
-use dsp::{fft, signal, window};
-use num_complex::*;
+use dsp::{
+    node::{fft, complex::RealToComplex},
+    num_complex::Complex32,
+    runtime::node::ProcessNode,
+    spectrum,
+    window,
+};
 
 use crate::*;
 
@@ -35,19 +39,14 @@ fn max_freq(buf: &[f32]) -> f32 {
     signal.resize(init_size, 0.0);
     win.apply(&buf.to_vec(), &mut signal);
 
-    // Create a new Signal.
-    signal.resize(NFFT, 0.0);
-    let signal = signal::Signal::new(
-        signal,
-        usize::try_from(SAMPLE_RATE).unwrap(),
-    );
-
     // Do the FFT and return the maximum frequency.
-    let mut freqs = Vec::with_capacity(NFFT);
-    freqs.resize(NFFT, Complex32::new(0.0, 0.0));
-    let mut ft = fft::ForwardFFT::new(NFFT);
-    let spectrum = ft.process(&signal);
-    spectrum.max_freq()
+    let tc = RealToComplex::new();
+    let mut csignal = vec![Complex32::default(); NFFT];
+    tc.process_buffer(&signal[..NFFT], &mut csignal).unwrap();
+    let ft = fft::ForwardFFT::new(NFFT);
+    let mut spectrum = vec![Complex32::default(); NFFT];
+    ft.process_buffer(&csignal, &mut spectrum).unwrap();
+    spectrum::max_freq(&spectrum, SAMPLE_RATE as usize)
 }
 
 #[test]
@@ -188,7 +187,7 @@ impl Loop {
             None => 1.0,
         };
         let cutoff = 20_000.0 * f32::min(1.0, incr);
-        Samples::new(&self, incr, cutoff)
+        Samples::new(self, incr, cutoff)
     }
 }
 
