@@ -26,7 +26,7 @@ pub struct Mixer<'a> {
     gain: f32,
 }
 
-impl<'a> Default for Mixer<'a> {
+impl Default for Mixer<'_> {
     fn default() -> Self {
         Mixer::new()
     }
@@ -86,7 +86,7 @@ impl<'a> Mixer<'a> {
 
 /// Iterator over simultaneous streams of samples that adds
 /// them to get a result.
-impl<'a> Iterator for Mixer<'a> {
+impl Iterator for Mixer<'_> {
     type Item = f32;
 
     // Get the next mixed sample. We do not assume that the

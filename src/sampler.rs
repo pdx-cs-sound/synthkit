@@ -127,7 +127,7 @@ impl<'a> Samples<'a> {
     }
 }
 
-impl<'a> Iterator for Samples<'a> {
+impl Iterator for Samples<'_> {
     type Item = f32;
 
     /// Return the next sample from the iterator.
@@ -181,7 +181,7 @@ impl Loop {
             None => 1.0,
         };
         let cutoff = 20_000.0 * f32::min(1.0, incr);
-        Samples::new(&self, incr, cutoff)
+        Samples::new(self, incr, cutoff)
     }
 }
 
